@@ -19,8 +19,8 @@ const variants: Record<Variant, string> = {
   ghost: 'hover:bg-accent text-foreground/85 hover:text-foreground',
   outline:
     'border border-border bg-transparent hover:bg-accent text-foreground/85 hover:text-foreground',
-  danger: 'bg-danger text-white hover:brightness-110',
-  xp: 'bg-xp text-black hover:brightness-110 font-semibold',
+  danger: 'bg-danger text-white hover:brightness-110 dark:text-black',
+  xp: 'bg-xp text-white hover:brightness-110 font-semibold dark:text-black',
 }
 
 const sizes: Record<Size, string> = {

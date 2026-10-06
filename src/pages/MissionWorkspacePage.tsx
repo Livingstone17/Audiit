@@ -254,7 +254,7 @@ function MissionBody({ mission, unlocked }: { mission: Mission; unlocked: Set<st
       {celebration && (
         <div className="mb-6 rounded-2xl border border-success/40 bg-success-soft/50 p-5 animate-scale-in">
           <div className="flex flex-wrap items-center gap-4">
-            <span className="flex size-12 items-center justify-center rounded-xl bg-success text-white animate-confetti-pop">
+            <span className="flex size-12 items-center justify-center rounded-xl bg-success text-white dark:text-black animate-confetti-pop">
               <Trophy size={24} />
             </span>
             <div className="min-w-0 flex-1">
