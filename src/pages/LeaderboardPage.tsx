@@ -152,7 +152,7 @@ export function LeaderboardPage() {
               {i < 3 ? (
                 <Trophy
                   size={15}
-                  className={i === 0 ? 'text-xp' : i === 1 ? 'text-muted-foreground' : 'text-warning/70'}
+                  className={i === 0 ? 'text-xp' : i === 1 ? 'text-muted-foreground' : 'text-warning'}
                 />
               ) : (
                 <span className="text-xs text-muted-foreground">{i + 1}</span>
