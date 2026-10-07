@@ -17,7 +17,7 @@ const PAY = 'payment-register-boss'
 
 export const BOSS_MISSION: Mission = {
   id: 'm24',
-  number: 24,
+  number: 37,
   levelId: 'L4',
   module: 'Final Case',
   category: 'Final Boss',
@@ -150,7 +150,7 @@ export const BOSS_MISSION: Mission = {
       answer: () => duplicatePayments(PAY).length,
       unit: 'invoices',
       explanation:
-        'Duplicate payments are realised loss — cash out twice for one liability. Quantify the value (your Mission 21 technique) and this is your strongest financial finding.',
+        'Duplicate payments are realised loss — cash out twice for one liability. Quantify the value (your Mission 32 technique) and this is your strongest financial finding.',
       incorrectFeedback:
         'Run the duplicate test on the payment register\'s Invoice Number column — payment IDs themselves are always unique.',
     },

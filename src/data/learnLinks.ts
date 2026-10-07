@@ -151,6 +151,171 @@ export const LEARN_LINKS: Record<LearnConcept, LearnLink> = {
     url: 'https://www.youtube.com/watch?v=VvUXZJVoR8g',
     kind: 'video',
   },
+  'trim-clean': {
+    label: 'cleaning messy data with TRIM and CLEAN',
+    url: 'https://support.microsoft.com/en-us/excel/top-ten-ways-to-clean-your-data',
+    kind: 'guide',
+  },
+  'find-replace': {
+    label: 'Find and Replace across a worksheet',
+    url: 'https://support.microsoft.com/en-us/excel/get-started/find-or-replace-text-and-numbers-on-a-worksheet',
+    kind: 'guide',
+  },
+  'text-extract': {
+    label: 'extracting text with LEFT, RIGHT and MID',
+    url: 'https://www.youtube.com/watch?v=KGFH5fTRhak',
+    kind: 'video',
+  },
+  'data-validation': {
+    label: 'data validation dropdown lists',
+    url: 'https://support.microsoft.com/en-us/excel/get-started/apply-data-validation-to-cells',
+    kind: 'guide',
+  },
+  'date-values': {
+    label: 'converting dates stored as text into real dates',
+    url: 'https://support.microsoft.com/en-us/excel/convert-dates-stored-as-text-to-dates',
+    kind: 'guide',
+  },
+  eomonth: {
+    label: 'the EOMONTH function for month-end dates',
+    url: 'https://www.youtube.com/watch?v=8ARyOhaMiXA',
+    kind: 'video',
+  },
+  iferror: {
+    label: 'the IFERROR function',
+    url: 'https://www.youtube.com/watch?v=bKLvtgP8XSs',
+    kind: 'video',
+  },
+  ifs: {
+    label: 'the IFS function for multi-condition tests',
+    url: 'https://www.youtube.com/watch?v=AOO1AoTNdZk',
+    kind: 'video',
+  },
+  'and-or': {
+    label: 'the AND and OR functions inside IF',
+    url: 'https://support.microsoft.com/en-us/excel/using-if-with-and-or-and-not-functions-in-excel',
+    kind: 'guide',
+  },
+  'index-match': {
+    label: 'INDEX and MATCH lookups',
+    url: 'https://www.youtube.com/watch?v=F264FpBDX28',
+    kind: 'video',
+  },
+  'named-ranges': {
+    label: 'naming cell ranges to make formulas readable',
+    url: 'https://support.microsoft.com/en-us/excel/get-started/define-and-use-names-in-formulas',
+    kind: 'guide',
+  },
+  'aging-buckets': {
+    label: 'ageing invoices by calculating days between dates',
+    url: 'https://support.microsoft.com/en-us/excel/get-started/calculate-the-difference-between-two-dates',
+    kind: 'guide',
+  },
+  'dynamic-arrays': {
+    label: 'the FILTER function and dynamic array formulas',
+    url: 'https://support.microsoft.com/en-us/excel/filter-function',
+    kind: 'guide',
+  },
+  textjoin: {
+    label: 'the TEXTJOIN function for joining ranges of text',
+    url: 'https://support.microsoft.com/en-us/excel/textjoin-function',
+    kind: 'guide',
+  },
+  'text-function': {
+    label: 'the TEXT function for formatting numbers as report text',
+    url: 'https://support.microsoft.com/en-us/excel/text-function',
+    kind: 'guide',
+  },
+  'csv-import': {
+    label: 'importing data from a CSV file with Get & Transform',
+    url: 'https://support.microsoft.com/en-us/excel/import-data-from-a-csv-html-or-text-file',
+    kind: 'guide',
+  },
+  subtotal: {
+    label: 'the SUBTOTAL function for filtered lists',
+    url: 'https://support.microsoft.com/en-us/excel/subtotal-function',
+    kind: 'guide',
+  },
+  'advanced-filter': {
+    label: 'filtering by using advanced criteria',
+    url: 'https://support.microsoft.com/en-us/excel/filter-by-using-advanced-criteria',
+    kind: 'guide',
+  },
+  'running-total': {
+    label: 'calculating a running total with mixed references',
+    url: 'https://support.microsoft.com/en-us/excel/calculate-a-running-total-in-excel',
+    kind: 'guide',
+  },
+  stdev: {
+    label: 'the STDEV.S function for sample standard deviation',
+    url: 'https://support.microsoft.com/en-us/excel/stdev-function',
+    kind: 'guide',
+  },
+  'what-if': {
+    label: 'What-If Analysis: Goal Seek and Scenario Manager',
+    url: 'https://support.microsoft.com/en-us/excel/introduction-to-what-if-analysis',
+    kind: 'guide',
+  },
+  'chart-types': {
+    label: 'choosing the right chart type',
+    url: 'https://support.microsoft.com/en-us/excel/get-started/create-a-chart-from-start-to-finish',
+    kind: 'guide',
+  },
+  'pivot-chart': {
+    label: 'creating a PivotChart',
+    url: 'https://support.microsoft.com/en-us/excel/get-started/create-a-pivotchart',
+    kind: 'guide',
+  },
+  'external-reference': {
+    label: 'workbook links (external references) between files',
+    url: 'https://support.microsoft.com/en-us/excel/create-workbook-links',
+    kind: 'guide',
+  },
+  'formula-auditing': {
+    label: 'tracing precedents and dependents to audit formulas',
+    url: 'https://support.microsoft.com/en-us/excel/display-the-relationships-between-formulas-and-cells',
+    kind: 'guide',
+  },
+  'sheet-protection': {
+    label: 'protecting a worksheet and locking cells',
+    url: 'https://support.microsoft.com/en-us/excel/protect-a-worksheet',
+    kind: 'guide',
+  },
+  'power-query-merge': {
+    label: 'merging queries (joining tables) in Power Query',
+    url: 'https://support.microsoft.com/en-us/excel/merge-queries-power-query',
+    kind: 'guide',
+  },
+  'power-query-append': {
+    label: 'appending queries to stack rows in Power Query',
+    url: 'https://support.microsoft.com/en-us/excel/append-queries-power-query',
+    kind: 'guide',
+  },
+  'data-model': {
+    label: 'relationships between tables in a Data Model',
+    url: 'https://support.microsoft.com/en-us/excel/relationships-between-tables-in-a-data-model',
+    kind: 'guide',
+  },
+  'dax-basics': {
+    label: 'DAX basics for Power Pivot measures',
+    url: 'https://support.microsoft.com/en-us/excel/quickstart-learn-dax-basics-in-30-minutes',
+    kind: 'guide',
+  },
+  'record-macro': {
+    label: 'recording macros with the Macro Recorder',
+    url: 'https://support.microsoft.com/en-us/excel/automate-tasks-with-the-macro-recorder',
+    kind: 'guide',
+  },
+  'vba-basics': {
+    label: 'VBA in Excel — objects, subs and the editor',
+    url: 'https://learn.microsoft.com/en-us/office/vba/api/overview/excel',
+    kind: 'guide',
+  },
+  'macro-security': {
+    label: 'macro security settings in the Trust Center',
+    url: 'https://support.microsoft.com/en-us/office/change-macro-security-settings-in-excel-a97c09d2-c082-46b8-b19f-e8621e8fe373',
+    kind: 'guide',
+  },
 }
 
 export const LEARN_CONCEPTS = Object.keys(LEARN_LINKS) as LearnConcept[]

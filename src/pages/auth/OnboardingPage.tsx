@@ -25,8 +25,8 @@ const EXCEL_LEVELS = [
 
 const RECOMMENDATIONS: Record<string, string> = {
   Beginner: 'We will start you at Mission 01 — Excel Foundations for Auditors, where you build every skill from scratch.',
-  Intermediate: 'You can move quickly through the foundations — but the procurement audit tests from Mission 11 are where you will learn the most.',
-  Advanced: 'Expect the foundations to be review. The investigation missions (19–23) and the final Procurement Audit case are built for you.',
+  Intermediate: 'You can move quickly through the foundations — but the procurement audit tests from Mission 15 are where you will learn the most.',
+  Advanced: 'Expect the foundations to be review. The investigation missions (30–34) and the final Procurement Audit case are built for you.',
 }
 
 export function OnboardingPage() {

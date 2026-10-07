@@ -103,7 +103,9 @@ export function DashboardPage() {
           {allDone && (
             <Card className="border-success/40 bg-success-soft/40 p-7 text-center">
               <Award className="mx-auto size-9 text-success" />
-              <h2 className="mt-3 text-xl font-semibold">All 24 missions completed</h2>
+              <h2 className="mt-3 text-xl font-semibold">
+                All {totalMissions} missions completed
+              </h2>
               <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
                 You have finished the Excel foundations, procurement audit, investigation
                 and the final case. Re-run any mission to sharpen your accuracy, or reset

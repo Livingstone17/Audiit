@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowRight, KeyRound, Lock, Mail } from 'lucide-react'
 import { useAppStore, DEMO_ACCOUNTS } from '../../store/app'
+import { MISSIONS } from '../../data/missions'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/forms'
 import { Alert } from '../../components/ui/overlays'
@@ -70,7 +71,7 @@ export function LoginPage() {
           </p>
           <ul className="mt-8 space-y-3 text-sm text-slate-300">
             {[
-              '24 practical missions across Excel, procurement audit and investigation',
+              `${MISSIONS.length} practical missions across Excel, procurement audit and investigation`,
               'Realistic downloadable .xlsx datasets with controlled anomalies',
               'Instant feedback, progressive hints and audit finding templates',
             ].map((f) => (

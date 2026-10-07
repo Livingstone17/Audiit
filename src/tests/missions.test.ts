@@ -5,20 +5,21 @@ import { CONCLUSIONS } from '../lib/types'
 import { resolveAnswer, resolveChoices } from '../lib/validation'
 
 describe('mission catalogue', () => {
-  it('ships 24 missions numbered 1..24', () => {
-    expect(MISSIONS).toHaveLength(24)
+  it('ships 40 missions numbered 1..40', () => {
+    expect(MISSIONS).toHaveLength(40)
     expect(MISSIONS.map((m) => m.number)).toEqual(
-      Array.from({ length: 24 }, (_, i) => i + 1),
+      Array.from({ length: 40 }, (_, i) => i + 1),
     )
-    expect(new Set(MISSIONS.map((m) => m.id)).size).toBe(24)
+    expect(new Set(MISSIONS.map((m) => m.id)).size).toBe(40)
   })
 
-  it('splits 10 / 8 / 5 / 1 across the four levels', () => {
+  it('splits 14 / 15 / 7 / 1 / 3 across the five levels', () => {
     const byLevel = (id: string) => MISSIONS.filter((m) => m.levelId === id).length
-    expect(byLevel('L1')).toBe(10)
-    expect(byLevel('L2')).toBe(8)
-    expect(byLevel('L3')).toBe(5)
+    expect(byLevel('L1')).toBe(14)
+    expect(byLevel('L2')).toBe(15)
+    expect(byLevel('L3')).toBe(7)
     expect(byLevel('L4')).toBe(1)
+    expect(byLevel('L5')).toBe(3)
   })
 
   it('every mission has a complete teaching brief', () => {
@@ -92,15 +93,17 @@ describe('mission catalogue', () => {
         }
       }
     }
-    expect(total).toBe(57)
+    expect(total).toBe(105)
   })
 
   it('unlocks strictly in sequence', () => {
     expect(isMissionUnlocked('m01', new Set())).toBe(true)
     expect(isMissionUnlocked('m02', new Set())).toBe(false)
     expect(isMissionUnlocked('m02', new Set(['m01']))).toBe(true)
-    expect(isMissionUnlocked('m24', new Set(['m01']))).toBe(false)
-    expect(isMissionUnlocked('m24', new Set(MISSIONS.slice(0, 23).map((m) => m.id)))).toBe(true)
+    expect(isMissionUnlocked('m40', new Set(['m01']))).toBe(false)
+    expect(
+      isMissionUnlocked('m40', new Set(MISSIONS.slice(0, MISSIONS.length - 1).map((m) => m.id))),
+    ).toBe(true)
   })
 
   it('recommends the first incomplete unlocked mission', () => {
@@ -111,7 +114,7 @@ describe('mission catalogue', () => {
   it('groups missions into curriculum modules', () => {
     const groups = moduleGroups('L1')
     const total = groups.reduce((n, g) => n + g.missions.length, 0)
-    expect(total).toBe(10)
+    expect(total).toBe(14)
     expect(groups.length).toBeGreaterThanOrEqual(3)
   })
 })

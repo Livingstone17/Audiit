@@ -1,15 +1,22 @@
 import type { Level, Mission, MissionStatus } from '../../lib/types'
 import { LEVELS } from '../../lib/levels'
 import { FOUNDATION_MISSIONS } from './foundations'
+import { FOUNDATION_GAP_MISSIONS } from './foundationGap'
 import { PROCUREMENT_MISSIONS } from './procurement'
+import { ANALYST_GAP_MISSIONS } from './analystGap'
 import { INVESTIGATION_MISSIONS } from './investigation'
+import { L3_GAP_MISSIONS, L5_GAP_MISSIONS } from './advancedGap'
 import { BOSS_MISSION } from './boss'
 
 export const MISSIONS: Mission[] = [
   ...FOUNDATION_MISSIONS,
+  ...FOUNDATION_GAP_MISSIONS,
   ...PROCUREMENT_MISSIONS,
+  ...ANALYST_GAP_MISSIONS,
   ...INVESTIGATION_MISSIONS,
+  ...L3_GAP_MISSIONS,
   BOSS_MISSION,
+  ...L5_GAP_MISSIONS,
 ]
 
 export function getMission(id: string): Mission | undefined {

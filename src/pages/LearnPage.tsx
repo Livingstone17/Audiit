@@ -21,8 +21,8 @@ export function LearnPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">Learn</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          One course, four modules, 24 missions — built around a real manufacturing
-          procurement audit at {COMPANY.name}.
+          One course, {AVAILABLE_LEVELS.length} levels, {total} missions — built around
+          a real manufacturing procurement audit at {COMPANY.name}.
         </p>
       </div>
 

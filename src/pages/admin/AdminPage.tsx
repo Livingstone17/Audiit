@@ -8,6 +8,7 @@ import {
   TicketCheck,
 } from 'lucide-react'
 import { useAppStore, allMissions } from '../../store/app'
+import { MISSIONS } from '../../data/missions'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
@@ -219,7 +220,10 @@ function Overview({
             <CardTitle>Content library health</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <HealthRow label="Missions published" value={`${missions} / 24 planned`} />
+            <HealthRow
+              label="Missions published"
+              value={`${missions} / ${MISSIONS.length} planned`}
+            />
             <HealthRow label="Learners with progress" value={started > 0 ? 'Yes' : 'No activity yet'} />
             <HealthRow label="Challenge attempts" value={submissions} />
             <div className="rounded-lg border border-border bg-background/50 p-3 text-xs text-muted-foreground">

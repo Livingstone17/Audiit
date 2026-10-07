@@ -154,8 +154,8 @@ describe('app smoke tests', () => {
 
   it('blocks locked missions with a clear explanation', async () => {
     renderAt('/missions/m11')
-    expect(await screen.findByText(/Mission 11 is locked/)).toBeTruthy()
-    expect(screen.getByText(/Complete "Building an Audit Exception Test"/)).toBeTruthy()
+    expect(await screen.findByText(/Mission 15 is locked/)).toBeTruthy()
+    expect(screen.getByText(/Complete "The Classic Lookup: INDEX \+ MATCH"/)).toBeTruthy()
   })
 
   it('renders the leaderboard with seeded peers', async () => {
