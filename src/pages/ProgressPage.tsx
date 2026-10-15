@@ -72,7 +72,10 @@ export function ProgressPage() {
     { label: 'Hints used', value: String(hintsUsed), icon: Flame, tone: 'text-warning' },
   ]
 
-  const areaStats = AVAILABLE_LEVELS.map((l) => ({ level: l, ...levelCompletion(l, completed) }))
+  const areaStats = AVAILABLE_LEVELS.map((l) => ({
+    level: l,
+    ...levelCompletion(missions, l, completed),
+  }))
 
   return (
     <div className="animate-fade-in">

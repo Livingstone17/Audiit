@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { MISSIONS, isMissionUnlocked, moduleGroups, recommendedMission } from '../data/missions'
+import {
+  MISSIONS,
+  isMissionUnlocked,
+  moduleGroups,
+  recommendedMission,
+} from '../data/missions/catalog'
 import { LEARN_LINKS } from '../data/learnLinks'
 import { CONCLUSIONS } from '../lib/types'
 import { resolveAnswer, resolveChoices } from '../lib/validation'

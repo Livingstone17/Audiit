@@ -9,8 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { useAppStore, mergeProgress } from '../../store/app'
-import { allMissions } from '../../store/app'
+import { useAppStore, mergeProgress, useMissions } from '../../store/app'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { Progress } from '../../components/ui/progress'
 import { EmptyState } from '../../components/ui/overlays'
@@ -24,7 +23,7 @@ export function AdminAnalytics() {
     () => mergeProgress(Object.values(progressByUserId)),
     [progressByUserId],
   )
-  const missions = allMissions()
+  const missions = useMissions()
 
   const missionStats = useMemo(() => {
     return missions.map((m) => {

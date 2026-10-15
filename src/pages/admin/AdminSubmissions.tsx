@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Search, TicketCheck } from 'lucide-react'
-import { useAppStore, allMissions, mergeProgress } from '../../store/app'
+import { useAppStore, mergeProgress, useMissions } from '../../store/app'
 import { Badge } from '../../components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { Input } from '../../components/ui/forms'
@@ -11,7 +11,7 @@ export function AdminSubmissions() {
   const progressByUserId = useAppStore((s) => s.progressByUserId)
   const user = useAppStore((s) => s.user)
   const [query, setQuery] = useState('')
-  const missions = allMissions()
+  const missions = useMissions()
 
   const submissions = useMemo(
     () => mergeProgress(Object.values(progressByUserId)).submissions,

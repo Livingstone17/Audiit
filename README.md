@@ -35,7 +35,7 @@ Or create a new account — onboarding takes ~10 seconds.
 | `npm run dev` | Vite dev server |
 | `npm run build` | Typecheck (`tsc -b`) + production build |
 | `npm run preview` | Serve the production build |
-| `npm test` | Vitest suite (datasets, missions, validation, per-user progress, contrast, app smoke tests) |
+| `npm test` | Vitest suite (datasets, missions, validation, hashes, per-user progress, contrast, app smoke tests) |
 | `npm run lint` | oxlint (0 errors, 0 warnings) |
 
 ## What is inside
@@ -79,7 +79,7 @@ src/
 ├── pages/             Dashboard, Learn, Missions, Mission workspace, Progress,
 │                      Leaderboard, Profile, auth, admin
 ├── store/             Zustand stores: app state (auth/per-user progress/admin) + toasts
-└── tests/             Vitest suites (7 files, 104 tests)
+└── tests/             Vitest suites (8 files, 115 tests)
 ```
 
 Key decisions:
@@ -89,12 +89,19 @@ Key decisions:
   gets its own progression slice (`progressByUserId`, keyed by `User.id`) — two
   accounts on one browser never share XP, records, submissions, badges, finding
   drafts or analytics events. Legacy v0/v1 payloads are migrated into the
-  signed-in user's slice on rehydrate (`migrateLegacyProgress`). The store is
-  the single seam for swapping in Supabase (auth/Postgres/RLS) later — replace
-  the actions in `src/store/app.ts`.
+  signed-in user's slice on rehydrate (`migratePersistedState`). Accounts store
+  **salted SHA-256 password hashes** (`lib/hash.ts`) — raw passwords never touch
+  localStorage, and v0–v2 payloads are hashed during migration. Demo
+  credentials are printed in the README on purpose; they are demo accounts.
+  The store is the single seam for swapping in Supabase (auth/Postgres/RLS)
+  later — replace the actions in `src/store/app.ts`.
 - **Admin analytics aggregate across users**: `mergeProgress` merges every
   account's slice — completion outranks in-progress, attempts/hints take the
   max, submissions and events are concatenated chronologically.
+- **Mission catalogue is code-split**: pages consume `useMissions()` from the
+  store; the 40-mission seed (`data/missions/catalog.ts`) loads via a dynamic
+  import after first paint (`ensureCatalogue()`), keeping it out of the initial
+  bundle. Catalogue-independent helpers live in `data/missions/pure.ts`.
 - **Mission answers as code**: dataset-derived answers are functions over the
   deterministic generators (`() => duplicateRecordCount('pr-full')`), resolved at
   validation time and flattened to static values by the admin editor.

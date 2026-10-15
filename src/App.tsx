@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, type ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import { useAppStore } from './store/app'
+import { useAppStore, ensureCatalogue } from './store/app'
 import { AppShell } from './layout/AppShell'
 import { LoginPage } from './pages/auth/LoginPage'
 import { SignupPage } from './pages/auth/SignupPage'
@@ -91,6 +91,11 @@ export default function App() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
   }, [theme])
+
+  /* load the 40-mission seed catalogue after first paint (code-split) */
+  useEffect(() => {
+    void ensureCatalogue()
+  }, [])
 
   return (
     <>

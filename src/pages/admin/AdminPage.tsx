@@ -8,8 +8,8 @@ import {
   ShieldCheck,
   TicketCheck,
 } from 'lucide-react'
-import { useAppStore, allMissions, mergeProgress } from '../../store/app'
-import { MISSIONS } from '../../data/missions'
+import { useAppStore, mergeProgress, useMissions } from '../../store/app'
+import { SEED_MISSION_COUNT } from '../../data/missions'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
@@ -37,7 +37,7 @@ export function AdminPage() {
   )
   const location = useLocation()
   const navigate = useNavigate()
-  const missions = allMissions()
+  const missions = useMissions()
 
   if (user?.role !== 'admin') {
     return (
@@ -214,7 +214,7 @@ function Overview({
           <CardContent className="space-y-3 text-sm">
             <HealthRow
               label="Missions published"
-              value={`${missions} / ${MISSIONS.length} planned`}
+              value={`${missions} / ${SEED_MISSION_COUNT} planned`}
             />
             <HealthRow label="Learners with progress" value={started > 0 ? 'Yes' : 'No activity yet'} />
             <HealthRow label="Challenge attempts" value={submissions} />

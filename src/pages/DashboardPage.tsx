@@ -133,7 +133,7 @@ export function DashboardPage() {
             <CardContent>
               <div className="grid gap-3 sm:grid-cols-3">
                 {AVAILABLE_LEVELS.map((level, i) => {
-                  const c = levelCompletion(level, completed)
+                  const c = levelCompletion(missions, level, completed)
                   const isNext = next?.levelId === level.id
                   const reached = missions.some(
                     (m) => m.levelId === level.id && (completed.has(m.id) || records[m.id]),

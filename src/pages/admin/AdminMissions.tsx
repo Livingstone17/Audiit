@@ -8,7 +8,7 @@ import {
   Save,
   Trash2,
 } from 'lucide-react'
-import { allMissions, useAppStore, mergeProgress } from '../../store/app'
+import { useAppStore, mergeProgress, useMissions } from '../../store/app'
 import { CONCLUSIONS, type Conclusion, type LearnConcept, type Mission, type Question, type QuestionType } from '../../lib/types'
 import { LEVELS } from '../../lib/levels'
 import { DATASET_IDS } from '../../datasets/registry'
@@ -44,7 +44,7 @@ function toPlain(mission: Mission): Mission {
 /* ------------------------------------------------------------------ */
 
 export function AdminMissions() {
-  const missions = allMissions()
+  const missions = useMissions()
   const progressByUserId = useAppStore((s) => s.progressByUserId)
   const records = useMemo(
     () => mergeProgress(Object.values(progressByUserId)).records,
@@ -172,7 +172,7 @@ function idsText(value: Mission['questions'][number]['correctIds']): string {
 
 export function MissionEditor() {
   const { id } = useParams<{ id: string }>()
-  const missions = allMissions()
+  const missions = useMissions()
   const source = missions.find((m) => m.id === id)
 
   if (!source) {

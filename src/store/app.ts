@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import type {
@@ -11,22 +12,27 @@ import type {
   Submission,
   User,
 } from '../lib/types'
-import { MISSIONS, getMission, isMissionUnlocked, nextMission } from '../data/missions'
+import { getMission, isMissionUnlocked, nextMission } from '../data/missions'
 import { ACHIEVEMENTS } from '../data/achievements'
+import { hashPassword, verifyPassword } from '../lib/hash'
 import { randomId } from '../lib/rng'
 import type { SubmissionInput } from '../lib/validation'
 import { validateAnswer } from '../lib/validation'
 
 export interface Account {
   email: string
-  password: string
+  /** salted SHA-256 — the raw password never persists (see lib/hash.ts) */
+  passwordHash: string
   user: User
 }
+
+/** Fixed salt for the demo accounts, whose credentials are printed in the README. */
+const DEMO_PASSWORD_SALT = 'auditlab'
 
 export const DEMO_ACCOUNTS: Account[] = [
   {
     email: 'zoe@auditlab.app',
-    password: 'demo1234',
+    passwordHash: hashPassword('demo1234', DEMO_PASSWORD_SALT),
     user: {
       id: 'u-zoe',
       name: 'Zoe Adeniyi',
@@ -41,7 +47,7 @@ export const DEMO_ACCOUNTS: Account[] = [
   },
   {
     email: 'admin@auditlab.app',
-    password: 'admin1234',
+    passwordHash: hashPassword('admin1234', DEMO_PASSWORD_SALT),
     user: {
       id: 'u-admin',
       name: 'Adaeze Okonkwo',
@@ -164,6 +170,9 @@ interface AppState {
   /* progression — one slice per user, keyed by User.id */
   progressByUserId: Record<string, UserProgress>
 
+  /* lazily-loaded seed catalogue — populated by ensureCatalogue(), never persisted */
+  catalogue: Mission[] | null
+
   /* ui */
   theme: 'dark' | 'light'
 
@@ -182,7 +191,7 @@ interface AppState {
   toggleTheme: () => void
 
   /* progression actions */
-  startMission: (missionId: string) => boolean
+  startMission: (missionId: string) => Promise<boolean>
   toggleTaskCheck: (missionId: string, index: number) => void
   useHint: (missionId: string, cost: number, hintId?: string) => void
   submitAnswer: (
@@ -190,7 +199,7 @@ interface AppState {
     question: Question,
     input: SubmissionInput,
   ) => { correct: boolean; malformed?: string; expected?: string | number | string[] }
-  completeMission: (missionId: string) => { earned: number; newAchievements: Achievement[] } | null
+  completeMission: (missionId: string) => Promise<{ earned: number; newAchievements: Achievement[] } | null>
   addFinding: (finding: Omit<AuditFindingDraft, 'id' | 'createdAt'>) => string
   updateFinding: (id: string, patch: Partial<AuditFindingDraft>) => void
   removeFinding: (id: string) => void
@@ -198,7 +207,7 @@ interface AppState {
 
   /* demo helpers */
   resetProgress: () => void
-  unlockAll: () => void
+  unlockAll: () => Promise<void>
 
   /* admin */
   upsertAdminMission: (mission: Mission) => void
@@ -214,9 +223,7 @@ function nowIso(): string {
  * account on the browser shared one progress state. Move it into the
  * signed-in user's slice; signed-out legacy progress is not claimable.
  */
-export function migrateLegacyProgress(persisted: unknown, version: number): unknown {
-  const stored = (persisted ?? {}) as Record<string, unknown>
-  if (version >= 2) return stored
+export function migrateLegacyProgress(stored: Record<string, unknown>): Record<string, unknown> {
   const legacy: UserProgress = {
     xp: (stored.xp as number) ?? 0,
     records: (stored.records as Record<string, MissionRecord>) ?? {},
@@ -235,6 +242,34 @@ export function migrateLegacyProgress(persisted: unknown, version: number): unkn
     delete migrated[key]
   }
   return migrated
+}
+
+/**
+ * v2 persisted accounts stored the raw password. Salt-hash it and drop the
+ * plaintext so it never re-persists.
+ */
+function hashLegacyAccountPasswords(state: Record<string, unknown>): void {
+  const accounts = state.accounts
+  if (!Array.isArray(accounts)) return
+  for (const a of accounts as Account[]) {
+    const legacy = a as unknown as { password?: string; passwordHash?: string }
+    if (legacy.password && !legacy.passwordHash) {
+      legacy.passwordHash = hashPassword(legacy.password, randomId())
+      delete legacy.password
+    }
+  }
+}
+
+/** Combined persisted-state migration: v0/v1 → per-user progress, v2 → hashed passwords. */
+export function migratePersistedState(persisted: unknown, version: number): unknown {
+  let state: Record<string, unknown>
+  if (version < 2) {
+    state = migrateLegacyProgress((persisted ?? {}) as Record<string, unknown>)
+  } else {
+    state = (persisted ?? {}) as Record<string, unknown>
+  }
+  if (version < 3) hashLegacyAccountPasswords(state)
+  return state
 }
 
 /**
@@ -258,6 +293,7 @@ export const useAppStore = create<AppState>()(
       user: null,
       onboarded: false,
       progressByUserId: {},
+      catalogue: null,
       theme: 'dark',
       adminMissions: [],
       deletedMissionIds: [],
@@ -267,7 +303,8 @@ export const useAppStore = create<AppState>()(
           (a) => a.email.toLowerCase() === email.trim().toLowerCase(),
         )
         if (!account) return { ok: false, error: 'No account found for that email.' }
-        if (account.password !== password) return { ok: false, error: 'Incorrect password.' }
+        if (!account.passwordHash || !verifyPassword(password, account.passwordHash))
+          return { ok: false, error: 'Incorrect password.' }
         set({ user: account.user, onboarded: Boolean(account.user.persona) })
         get().trackEvent('login')
         return { ok: true }
@@ -289,7 +326,7 @@ export const useAppStore = create<AppState>()(
           createdAt: nowIso(),
         }
         set({
-          accounts: [...get().accounts, { email: clean, password, user }],
+          accounts: [...get().accounts, { email: clean, passwordHash: hashPassword(password, randomId()), user }],
           user,
           onboarded: false,
         })
@@ -323,17 +360,19 @@ export const useAppStore = create<AppState>()(
         document.documentElement.classList.toggle('dark', next === 'dark')
       },
 
-      startMission: (missionId) => {
+      startMission: async (missionId) => {
         const state = get()
         const uid = state.user?.id
         if (!uid) return false
+        await ensureCatalogue()
+        const missions = allMissions()
         const p = selectMyProgress(state)
         const completed = new Set(
           Object.entries(p.records)
             .filter(([, r]) => r.status === 'completed')
             .map(([id]) => id),
         )
-        if (!isMissionUnlocked(missionId, completed)) return false
+        if (!isMissionUnlocked(missions, missionId, completed)) return false
         if (p.records[missionId]) return true
         set(
           updateActive(state, (cur) => ({
@@ -347,7 +386,7 @@ export const useAppStore = create<AppState>()(
                 hintsUsed: 0,
                 hintXp: 0,
                 questionsCorrect: 0,
-                questionsTotal: getMission(missionId)?.questions.length ?? 0,
+                questionsTotal: getMission(missions, missionId)?.questions.length ?? 0,
               },
             },
           })),
@@ -457,12 +496,14 @@ export const useAppStore = create<AppState>()(
         return base
       },
 
-      completeMission: (missionId) => {
+      completeMission: async (missionId) => {
         const state = get()
         const uid = state.user?.id
         if (!uid) return null
+        await ensureCatalogue()
         const mission =
-          state.adminMissions.find((m) => m.id === missionId) ?? getMission(missionId)
+          state.adminMissions.find((m) => m.id === missionId) ??
+          getMission(allMissions(), missionId)
         if (!mission) return null
         const p = selectMyProgress(state)
         const rec = p.records[missionId]
@@ -504,7 +545,7 @@ export const useAppStore = create<AppState>()(
         state.trackEvent('mission_completed', { missionId })
         state.trackEvent('xp_earned', { missionId, value: earned })
 
-        const nxt = nextMission(missionId)
+        const nxt = nextMission(allMissions(), missionId)
         if (nxt && nxt.levelId !== mission.levelId) {
           state.trackEvent('module_completed', { missionId })
         }
@@ -550,13 +591,15 @@ export const useAppStore = create<AppState>()(
 
       resetProgress: () => set(updateActive(get(), () => ({ ...EMPTY_PROGRESS }))),
 
-      unlockAll: () => {
+      unlockAll: async () => {
         const state = get()
         if (!state.user?.id) return
+        await ensureCatalogue()
+        const missions = allMissions()
         set(
           updateActive(state, (p) => {
             const records = { ...p.records }
-            for (const m of allMissions()) {
+            for (const m of missions) {
               if (!records[m.id]) {
                 records[m.id] = {
                   status: 'in-progress',
@@ -593,7 +636,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'auditlab-store-v1',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({
         accounts: s.accounts,
@@ -604,7 +647,7 @@ export const useAppStore = create<AppState>()(
         adminMissions: s.adminMissions,
         deletedMissionIds: s.deletedMissionIds,
       }),
-      migrate: migrateLegacyProgress,
+      migrate: migratePersistedState,
     },
   ),
 )
@@ -645,20 +688,52 @@ export function checkAchievements(
 }
 
 /* ------------------------------------------------------------------ */
-/* Mission list (seed + admin overrides)                               */
+/* Mission list (lazily loaded seed + admin overrides)                  */
 /* ------------------------------------------------------------------ */
 
-export function allMissions(): Mission[] {
-  const { adminMissions, deletedMissionIds } = useAppStore.getState()
+function applyMissionOverrides(
+  catalogue: Mission[] | null,
+  adminMissions: Mission[],
+  deletedMissionIds: string[],
+): Mission[] {
   const deleted = new Set(deletedMissionIds)
   const overrides = new Map(adminMissions.map((m) => [m.id, m]))
-  const seeds = MISSIONS.filter((m) => !deleted.has(m.id)).map(
-    (m) => overrides.get(m.id) ?? m,
-  )
+  const seedCum = catalogue ?? []
+  const seeds = seedCum
+    .filter((m) => !deleted.has(m.id))
+    .map((m) => overrides.get(m.id) ?? m)
   const custom = adminMissions.filter(
-    (m) => !MISSIONS.some((s) => s.id === m.id) && !deleted.has(m.id),
+    (m) => !seedCum.some((s) => s.id === m.id) && !deleted.has(m.id),
   )
   return [...seeds, ...custom]
+}
+
+/** Imperative accessor — an empty list until the catalogue finishes loading. */
+export function allMissions(): Mission[] {
+  const { catalogue, adminMissions, deletedMissionIds } = useAppStore.getState()
+  return applyMissionOverrides(catalogue, adminMissions, deletedMissionIds)
+}
+
+/** Subscribed accessor for components — re-renders once the catalogue loads. */
+export function useMissions(): Mission[] {
+  const catalogue = useAppStore((s) => s.catalogue)
+  const adminMissions = useAppStore((s) => s.adminMissions)
+  const deletedMissionIds = useAppStore((s) => s.deletedMissionIds)
+  return useMemo(
+    () => applyMissionOverrides(catalogue, adminMissions, deletedMissionIds),
+    [catalogue, adminMissions, deletedMissionIds],
+  )
+}
+
+let cataloguePromise: Promise<void> | null = null
+
+/** Kick the code-split load of the 40-mission seed catalogue (idempotent). */
+export function ensureCatalogue(): Promise<void> {
+  if (useAppStore.getState().catalogue) return Promise.resolve()
+  cataloguePromise ??= import('../data/missions/catalog').then((m) => {
+    useAppStore.setState({ catalogue: m.MISSIONS })
+  })
+  return cataloguePromise
 }
 
 export function completedSet(state: Pick<UserProgress, 'records'>): Set<string> {

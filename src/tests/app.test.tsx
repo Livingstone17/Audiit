@@ -125,10 +125,12 @@ afterEach(cleanup)
 describe('app smoke tests', () => {
   it('renders the dashboard for a signed-in learner', async () => {
     renderAt('/')
-    expect(await screen.findByText('Welcome back, Zoe')).toBeTruthy()
+    /* the mission catalogue code-splits, so wait for the next-mission card */
+    expect(await screen.findByText('MISSION 05')).toBeTruthy()
+    expect(screen.getByText('Welcome back, Zoe')).toBeTruthy()
     expect(screen.getByText('Your next mission is waiting.')).toBeTruthy()
     // next mission is 05 given m01–m04 are complete
-    expect(screen.getByText('MISSION 05')).toBeTruthy()
+    expect(screen.getByText('COUNTIF and COUNTIFS')).toBeTruthy()
     expect(screen.getByText('COUNTIF and COUNTIFS')).toBeTruthy()
     expect(screen.getByText('Level 2: Audit Analyst')).toBeTruthy()
   })

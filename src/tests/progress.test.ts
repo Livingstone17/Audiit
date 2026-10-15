@@ -1,5 +1,5 @@
 /**
- * Per-user progress isolation tests.
+ * Per-user progress isolation + account-security tests.
  *
  * Regression coverage for the earlier structure in which XP, records,
  * submissions … sat at the top of the persisted store, so every account on
@@ -28,12 +28,13 @@ const {
   useAppStore,
   selectMyProgress,
   mergeProgress,
-  migrateLegacyProgress,
+  migratePersistedState,
   SUBMISSIONS_CAP,
   EMPTY_PROGRESS,
   DEMO_ACCOUNTS,
 } = await import('../store/app')
-const { MISSIONS } = await import('../data/missions')
+const { MISSIONS } = await import('../data/missions/catalog')
+const { verifyPassword, hashPassword } = await import('../lib/hash')
 
 function resetStore() {
   useAppStore.setState({
@@ -52,16 +53,112 @@ beforeEach(() => {
   resetStore()
 })
 
-const loginAs = (email: string, password: string) => {
+const loginAs = async (email: string, password: string) => {
   const res = useAppStore.getState().login(email, password)
   expect(res.ok).toBe(true)
 }
 
+const start = async (missionId: string) => {
+  return useAppStore.getState().startMission(missionId)
+}
+
+describe('password hashing', () => {
+  it('logs in with the correct password and rejects wrong ones', async () => {
+    await loginAs('zoe@auditlab.app', 'demo1234')
+    expect(useAppStore.getState().user?.id).toBe('u-zoe')
+
+    useAppStore.getState().logout()
+    const wrong = useAppStore.getState().login('zoe@auditlab.app', 'wrong-password')
+    expect(wrong.ok).toBe(false)
+    expect(wrong.error).toBe('Incorrect password.')
+    expect(useAppStore.getState().user).toBeNull()
+  })
+
+  it('never stores raw passwords in accounts or persistence', async () => {
+    await useAppStore.getState().signup('New User', 'new@example.com', 's3cret!pw')
+    const account = useAppStore.getState().accounts.find((a) => a.email === 'new@example.com')!
+    expect(account.passwordHash).toBeTruthy()
+    expect(JSON.stringify(account)).not.toContain('s3cret!pw')
+    expect(verifyPassword('s3cret!pw', account.passwordHash)).toBe(true)
+
+    const raw = mem.get('auditlab-store-v1')!
+    expect(raw).not.toContain('s3cret!pw')
+    expect(raw).not.toContain('demo1234')
+    expect(raw).not.toContain('admin1234')
+  })
+
+  it('migrates legacy plaintext account passwords and reapplies per-user progress', () => {
+    /* a v0 payload exactly as the old store wrote it */
+    const migrated = migratePersistedState(
+      {
+        user: { id: 'u-legacy', name: 'Old Learner', role: 'learner', createdAt: '2025-09-01T09:00:00.000Z' },
+        accounts: [
+          {
+            email: 'old@example.com',
+            password: 'plaintext-pw',
+            user: { id: 'u-legacy', name: 'Old Learner', role: 'learner', createdAt: '2025-09-01T09:00:00.000Z' },
+          },
+        ],
+        xp: 650,
+        records: {
+          m01: {
+            status: 'completed',
+            startedAt: '2025-09-24T09:00:00.000Z',
+            completedAt: '2025-09-24T10:00:00.000Z',
+            attempts: 1,
+            firstTryCorrect: true,
+            hintsUsed: 0,
+            hintXp: 0,
+            questionsCorrect: 3,
+            questionsTotal: 3,
+          },
+        },
+        taskChecks: { m01: [0, 1] },
+        submissions: [],
+        achievements: [],
+        events: [],
+        findings: [],
+        theme: 'dark',
+      },
+      0,
+    ) as Record<string, unknown>
+
+    /* progress moves into the signed-in user's slice */
+    expect(migrated).not.toHaveProperty('xp')
+    const slices = migrated.progressByUserId as Record<string, { xp: number }>
+    expect(slices['u-legacy'].xp).toBe(650)
+
+    /* the plaintext password is hashed and gone */
+    const account = (migrated.accounts as { email: string; passwordHash: string; password?: string }[])[0]!
+    expect(account.password).toBeUndefined()
+    expect(account.passwordHash).not.toContain('plaintext-pw')
+    expect(verifyPassword('plaintext-pw', account.passwordHash)).toBe(true)
+  })
+
+  it('migrates v2 payloads with plaintext passwords too', () => {
+    const state = {
+      accounts: [{ email: 'a@example.com', password: 'hunter22', user: { id: 'u-a' } }],
+      progressByUserId: {},
+      theme: 'dark',
+    }
+    const migrated = migratePersistedState(state, 2) as {
+      accounts: { passwordHash: string; password?: string }[]
+    }
+    expect(migrated.accounts[0]!.password).toBeUndefined()
+    expect(verifyPassword('hunter22', migrated.accounts[0]!.passwordHash)).toBe(true)
+  })
+
+  it('passes v3+ payloads through untouched', () => {
+    const current = { progressByUserId: { 'u-a': EMPTY_PROGRESS }, theme: 'dark' }
+    expect(migratePersistedState(current, 3)).toBe(current)
+  })
+})
+
 describe('per-user progress', () => {
-  it('isolates XP and records per account on the same browser', () => {
-    loginAs('zoe@auditlab.app', 'demo1234')
-    expect(useAppStore.getState().startMission('m01')).toBe(true)
-    const earned = useAppStore.getState().completeMission('m01')
+  it('isolates XP and records per account on the same browser', async () => {
+    await loginAs('zoe@auditlab.app', 'demo1234')
+    expect(await start('m01')).toBe(true)
+    const earned = await useAppStore.getState().completeMission('m01')
     expect(earned).not.toBeNull()
     const zoeXp = selectMyProgress(useAppStore.getState()).xp
     expect(zoeXp).toBe(earned!.earned)
@@ -69,17 +166,17 @@ describe('per-user progress', () => {
 
     // switching accounts shows an entirely fresh slice
     useAppStore.getState().logout()
-    loginAs('admin@auditlab.app', 'admin1234')
+    await loginAs('admin@auditlab.app', 'admin1234')
     const adminView = selectMyProgress(useAppStore.getState())
     expect(adminView.xp).toBe(0)
     expect(Object.keys(adminView.records)).toHaveLength(0)
 
     // the admin can do the same mission without touching Zoe's record
-    expect(useAppStore.getState().startMission('m01')).toBe(true)
-    useAppStore.getState().completeMission('m01')
+    expect(await start('m01')).toBe(true)
+    await useAppStore.getState().completeMission('m01')
 
     useAppStore.getState().logout()
-    loginAs('zoe@auditlab.app', 'demo1234')
+    await loginAs('zoe@auditlab.app', 'demo1234')
     const zoe = useAppStore.getState().progressByUserId['u-zoe']
     expect(zoe.records.m01?.status).toBe('completed')
     expect(zoe.xp).toBe(zoeXp)
@@ -88,24 +185,24 @@ describe('per-user progress', () => {
     expect(admin).not.toBe(zoe)
   })
 
-  it('default progress of a new signup starts clean and separate', () => {
-    loginAs('zoe@auditlab.app', 'demo1234')
-    expect(useAppStore.getState().startMission('m01')).toBe(true)
-    useAppStore.getState().completeMission('m01')
+  it('default progress of a new signup starts clean and separate', async () => {
+    await loginAs('zoe@auditlab.app', 'demo1234')
+    expect(await start('m01')).toBe(true)
+    await useAppStore.getState().completeMission('m01')
 
     useAppStore.getState().signup('Test User', 'test@example.com', 'test1234')
     const view = selectMyProgress(useAppStore.getState())
     expect(view).toBe(EMPTY_PROGRESS)
-    expect(useAppStore.getState().startMission('m02')).toBe(false) // locked until m01 done
+    expect(await start('m02')).toBe(false) // locked until m01 done
   })
 
-  it('ignores progression actions and events when signed out', () => {
-    loginAs('zoe@auditlab.app', 'demo1234')
-    expect(useAppStore.getState().startMission('m01')).toBe(true)
+  it('ignores progression actions and events when signed out', async () => {
+    await loginAs('zoe@auditlab.app', 'demo1234')
+    expect(await start('m01')).toBe(true)
     useAppStore.getState().logout()
 
     const before = mem.get('auditlab-store-v1')
-    expect(useAppStore.getState().startMission('m01')).toBe(false)
+    expect(await start('m01')).toBe(false)
     expect(selectMyProgress(useAppStore.getState())).toBe(EMPTY_PROGRESS)
     useAppStore.getState().trackEvent('login')
     useAppStore.getState().toggleTaskCheck('m01', 0)
@@ -113,9 +210,9 @@ describe('per-user progress', () => {
     expect(mem.get('auditlab-store-v1')).toBe(before)
   })
 
-  it('caps the per-user submissions log at SUBMISSIONS_CAP', () => {
-    loginAs('zoe@auditlab.app', 'demo1234')
-    expect(useAppStore.getState().startMission('m01')).toBe(true)
+  it('caps the per-user submissions log at SUBMISSIONS_CAP', async () => {
+    await loginAs('zoe@auditlab.app', 'demo1234')
+    expect(await start('m01')).toBe(true)
 
     const bloat = Array.from({ length: SUBMISSIONS_CAP + 5 }, (_, i) => ({
       id: `old-${i}`,
@@ -145,74 +242,16 @@ describe('per-user progress', () => {
     expect(subs.at(-1)?.missionId).toBe('m01')
   })
 
-  it('persists one slice per user under version 2', () => {
-    loginAs('zoe@auditlab.app', 'demo1234')
-    useAppStore.getState().startMission('m01')
-    useAppStore.getState().completeMission('m01')
+  it('persists one slice per user under version 3', async () => {
+    await loginAs('zoe@auditlab.app', 'demo1234')
+    await start('m01')
+    await useAppStore.getState().completeMission('m01')
 
     const raw = JSON.parse(mem.get('auditlab-store-v1')!)
-    expect(raw.version).toBe(2)
+    expect(raw.version).toBe(3)
     expect(Object.keys(raw.state.progressByUserId)).toEqual(['u-zoe'])
     expect(raw.state.xp).toBeUndefined()
     expect(raw.state.records).toBeUndefined()
-  })
-
-  it('migrates legacy shared progress into the signed-in user’s slice', () => {
-    const legacyUser = {
-      id: 'u-legacy',
-      name: 'Old Learner',
-      email: 'old@auditlab.app',
-      role: 'learner',
-      createdAt: '2025-09-01T09:00:00.000Z',
-    }
-    const legacySlice = {
-      m01: {
-        status: 'completed',
-        startedAt: '2025-09-24T09:00:00.000Z',
-        completedAt: '2025-09-24T10:00:00.000Z',
-        attempts: 1,
-        firstTryCorrect: true,
-        hintsUsed: 0,
-        hintXp: 0,
-        questionsCorrect: 3,
-        questionsTotal: 3,
-      },
-    }
-    const migrated = migrateLegacyProgress(
-      {
-        accounts: [],
-        user: legacyUser,
-        onboarded: true,
-        xp: 650,
-        records: legacySlice,
-        taskChecks: { m01: [0, 1] },
-        submissions: [
-          { id: 's1', missionId: 'm01', questionId: 'm01-q1', answer: '320', correct: true, attempts: 1, at: '2025-09-25T10:00:00.000Z' },
-        ],
-        achievements: ['first-finding'],
-        events: [{ id: 'e1', type: 'xp_earned', value: 100, at: '2025-09-24T10:00:00.000Z' }],
-        findings: [],
-        theme: 'dark',
-        adminMissions: [],
-        deletedMissionIds: [],
-      },
-      0,
-    ) as Record<string, unknown>
-
-    /* everything lands in the signed-in user's slice */
-    expect(migrated).not.toHaveProperty('xp')
-    expect(migrated).not.toHaveProperty('records')
-    expect(migrated).not.toHaveProperty('submissions')
-    const slices = migrated.progressByUserId as Record<string, { xp: number }>
-    expect(Object.keys(slices)).toEqual(['u-legacy'])
-    expect(slices['u-legacy'].xp).toBe(650)
-    expect((slices['u-legacy'] as unknown as { records: typeof legacySlice }).records).toEqual(
-      legacySlice,
-    )
-
-    /* current payloads pass through untouched */
-    const current = { progressByUserId: { 'u-a': EMPTY_PROGRESS }, theme: 'dark' }
-    expect(migrateLegacyProgress(current, 2)).toBe(current)
   })
 })
 
@@ -233,7 +272,9 @@ describe('mergeProgress (admin aggregation)', () => {
             questionsTotal: 3,
           },
         },
-        submissions: [{ id: 'a', missionId: 'm01', questionId: 'm01-q1', answer: 'x', correct: false, attempts: 1, at: '2025-09-24T09:30:00.000Z' }],
+        submissions: [
+          { id: 'a', missionId: 'm01', questionId: 'm01-q1', answer: 'x', correct: false, attempts: 1, at: '2025-09-24T09:30:00.000Z' },
+        ],
       },
       {
         ...EMPTY_PROGRESS,
@@ -250,7 +291,9 @@ describe('mergeProgress (admin aggregation)', () => {
             questionsTotal: 3,
           },
         },
-        submissions: [{ id: 'b', missionId: 'm01', questionId: 'm01-q1', answer: 'y', correct: true, attempts: 1, at: '2025-09-24T10:30:00.000Z' }],
+        submissions: [
+          { id: 'b', missionId: 'm01', questionId: 'm01-q1', answer: 'y', correct: true, attempts: 1, at: '2025-09-24T10:30:00.000Z' },
+        ],
         events: [{ id: 'e2', type: 'mission_completed', missionId: 'm01', at: '2025-09-24T11:00:00.000Z' }],
       },
     ])
@@ -260,5 +303,14 @@ describe('mergeProgress (admin aggregation)', () => {
     expect(merged.records.m01?.attempts).toBe(2)
     expect(merged.submissions.map((s) => s.id)).toEqual(['a', 'b'])
     expect(merged.events.map((e) => e.id)).toEqual(['e2'])
+  })
+
+  it('shows hashed demo credentials survive resetStore round-trips', () => {
+    for (const account of [...DEMO_ACCOUNTS]) {
+      expect(account.passwordHash).toMatch(/^\w+\$[0-9a-f]{64}$/)
+      expect(JSON.stringify(account)).not.toContain('demo1234')
+    }
+    const clone = hashPassword('demo1234', 'auditlab')
+    expect(clone).toBe(DEMO_ACCOUNTS[0]!.passwordHash)
   })
 })

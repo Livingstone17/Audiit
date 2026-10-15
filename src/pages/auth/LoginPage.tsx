@@ -2,7 +2,14 @@ import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowRight, KeyRound, Lock, Mail } from 'lucide-react'
 import { useAppStore, DEMO_ACCOUNTS } from '../../store/app'
-import { MISSIONS } from '../../data/missions'
+import { SEED_MISSION_COUNT } from '../../data/missions'
+
+/** Demo credentials are published in the README — kept here for the login
+ * demo cards; they are never written to persistence. */
+const DEMO_PASSWORDS: Record<string, string> = {
+  'zoe@auditlab.app': 'demo1234',
+  'admin@auditlab.app': 'admin1234',
+}
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/forms'
 import { Alert } from '../../components/ui/overlays'
@@ -36,7 +43,7 @@ export function LoginPage() {
   const fillDemo = (i: number) => {
     const a = DEMO_ACCOUNTS[i]!
     setEmail(a.email)
-    setPassword(a.password)
+    setPassword(DEMO_PASSWORDS[a.email] ?? '')
     setError('')
   }
 
@@ -71,7 +78,7 @@ export function LoginPage() {
           </p>
           <ul className="mt-8 space-y-3 text-sm text-slate-300">
             {[
-              `${MISSIONS.length} practical missions across Excel, procurement audit and investigation`,
+              `${SEED_MISSION_COUNT} practical missions across Excel, procurement audit and investigation`,
               'Realistic downloadable .xlsx datasets with controlled anomalies',
               'Instant feedback, progressive hints and audit finding templates',
             ].map((f) => (
@@ -147,7 +154,7 @@ export function LoginPage() {
                     <span className="block text-muted-foreground">{a.email}</span>
                   </span>
                   <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]">
-                    {a.password}
+                    {DEMO_PASSWORDS[a.email]}
                   </span>
                 </button>
               ))}

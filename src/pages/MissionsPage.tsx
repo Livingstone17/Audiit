@@ -20,7 +20,7 @@ export function MissionsPage() {
 
   const filtered = useMemo(() => {
     return missions.filter((m) => {
-      const status = missionStatus(m.id, completed, started)
+      const status = missionStatus(missions, m.id, completed, started)
       if (
         query &&
         !`${m.title} ${m.category} ${m.summary}`.toLowerCase().includes(query.toLowerCase())
@@ -38,11 +38,11 @@ export function MissionsPage() {
   const counts = {
     All: missions.length,
     Available: missions.filter((m) => {
-      const s = missionStatus(m.id, completed, started)
+      const s = missionStatus(missions, m.id, completed, started)
       return s === 'available' || s === 'in-progress'
     }).length,
     Completed: missions.filter((m) => completed.has(m.id)).length,
-    Locked: missions.filter((m) => missionStatus(m.id, completed, started) === 'locked').length,
+    Locked: missions.filter((m) => missionStatus(missions, m.id, completed, started) === 'locked').length,
   }
 
   return (
@@ -130,7 +130,7 @@ export function MissionsPage() {
             <MissionCard
               key={m.id}
               mission={m}
-              status={missionStatus(m.id, completed, started)}
+              status={missionStatus(missions, m.id, completed, started)}
             />
           ))}
         </div>

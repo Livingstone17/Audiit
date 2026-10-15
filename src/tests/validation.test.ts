@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { isAnswered, resolveAnswer, validateAnswer } from '../lib/validation'
 import type { Question } from '../lib/types'
 import { rows, unpaidAbove } from '../datasets/registry'
-import { MISSIONS } from '../data/missions'
+import { MISSIONS } from '../data/missions/catalog'
 
 const base = {
   id: 'q',
