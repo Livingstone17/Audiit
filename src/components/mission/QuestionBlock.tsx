@@ -11,7 +11,7 @@ import {
 import type { Mission, Question } from '../../lib/types'
 import type { SubmissionInput } from '../../lib/validation'
 import { CONCLUSIONS } from '../../lib/types'
-import { useAppStore } from '../../store/app'
+import { useAppStore, selectMyProgress } from '../../store/app'
 import { useToasts } from '../../store/toasts'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -57,7 +57,7 @@ function formatExpected(q: Question, expected: string | number | string[]): stri
 export function QuestionBlock({ mission, question, index }: Props) {
   const submitAnswer = useAppStore((s) => s.submitAnswer)
   const revealSolution = useAppStore((s) => s.useHint)
-  const submissions = useAppStore((s) => s.submissions)
+  const submissions = useAppStore((s) => selectMyProgress(s).submissions)
   const push = useToasts((s) => s.push)
 
   const alreadyCorrect = submissions.some(

@@ -1,15 +1,11 @@
-import { useAppStore, accuracyOf, allMissions, completedSet } from '../store/app'
+import { useAppStore, accuracyOf, allMissions, completedSet, selectMyProgress } from '../store/app'
 import { getLevelInfo } from '../lib/levels'
 import { SKILLS } from '../data/achievements'
 import { countHintsUsed, levelMissions, recommendedMission } from '../data/missions'
 import type { Mission } from '../lib/types'
 
 export function useProgress() {
-  const xp = useAppStore((s) => s.xp)
-  const records = useAppStore((s) => s.records)
-  const submissions = useAppStore((s) => s.submissions)
-  const achievements = useAppStore((s) => s.achievements)
-  const events = useAppStore((s) => s.events)
+  const { xp, records, submissions, achievements, events } = useAppStore(selectMyProgress)
 
   const missions = allMissions()
   const completed = completedSet({ records })

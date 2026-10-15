@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Wordmark, Avatar } from '../components/brand'
-import { useAppStore } from '../store/app'
+import { useAppStore, selectMyProgress } from '../store/app'
 import { ToastHost } from '../components/ToastHost'
 
 interface NavItem {
@@ -36,7 +36,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const goLab = () => {
-    const records = useAppStore.getState().records
+    const { records } = selectMyProgress(useAppStore.getState())
     const inProgress = Object.keys(records).find((id) => records[id]!.status === 'in-progress')
     navigate(inProgress ? `/missions/${inProgress}` : '/missions')
   }

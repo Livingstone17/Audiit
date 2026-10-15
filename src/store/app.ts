@@ -56,13 +56,16 @@ export const DEMO_ACCOUNTS: Account[] = [
   },
 ]
 
-interface AppState {
-  /* auth */
-  accounts: Account[]
-  user: User | null
-  onboarded: boolean
+/* ------------------------------------------------------------------ */
+/* Per-user progression                                                */
+/* ------------------------------------------------------------------ */
 
-  /* progression */
+/**
+ * Everything a learner earns lives in one slice, keyed by `User.id`.
+ * Two accounts on the same browser therefore never share XP, records or
+ * submissions.
+ */
+export interface UserProgress {
   xp: number
   records: Record<string, MissionRecord>
   /** checked task indices per mission — the mission checklist, persisted */
@@ -71,6 +74,85 @@ interface AppState {
   achievements: string[]
   events: AnalyticsEvent[]
   findings: AuditFindingDraft[]
+}
+
+export const EMPTY_PROGRESS: UserProgress = {
+  xp: 0,
+  records: {},
+  taskChecks: {},
+  submissions: [],
+  achievements: [],
+  events: [],
+  findings: [],
+}
+
+/** Progress for the signed-in user, or an empty slice when signed out. */
+export function selectMyProgress(
+  s: Pick<AppState, 'user' | 'progressByUserId'>,
+): UserProgress {
+  const uid = s.user?.id
+  return (uid && s.progressByUserId[uid]) || EMPTY_PROGRESS
+}
+
+/** Admin-facing aggregation across every account on this browser. */
+export interface AggregateProgress {
+  xp: number
+  records: Record<string, MissionRecord>
+  submissions: Submission[]
+  events: AnalyticsEvent[]
+}
+
+export function mergeProgress(slices: UserProgress[]): AggregateProgress {
+  const records: Record<string, MissionRecord> = {}
+  const submissions: Submission[] = []
+  const events: AnalyticsEvent[] = []
+  const xpValues: number[] = []
+
+  for (const p of slices) {
+    xpValues.push(p.xp)
+    submissions.push(...p.submissions)
+    events.push(...p.events)
+    for (const [id, r] of Object.entries(p.records)) {
+      const prev = records[id]
+      records[id] = prev
+        ? {
+            // best attempt wins; completion outranks in-progress
+            status:
+              prev.status === 'completed' || r.status === 'completed'
+                ? 'completed'
+                : 'in-progress',
+            startedAt: prev.startedAt < r.startedAt ? prev.startedAt : r.startedAt,
+            completedAt:
+             prev.completedAt && r.completedAt
+                ? prev.completedAt < r.completedAt
+                  ? prev.completedAt
+                  : r.completedAt
+                : prev.completedAt ?? r.completedAt,
+            attempts: Math.max(prev.attempts, r.attempts),
+            firstTryCorrect: prev.firstTryCorrect && r.firstTryCorrect,
+            hintsUsed: Math.max(prev.hintsUsed, r.hintsUsed),
+            hintXp: Math.max(prev.hintXp ?? 0, r.hintXp ?? 0),
+            revealedHints: [...(prev.revealedHints ?? []), ...(r.revealedHints ?? [])],
+            questionsCorrect: Math.max(prev.questionsCorrect, r.questionsCorrect),
+            questionsTotal: Math.max(prev.questionsTotal, r.questionsTotal),
+          }
+        : { ...r }
+    }
+  }
+
+  submissions.sort((a, b) => a.at.localeCompare(b.at))
+  events.sort((a, b) => a.at.localeCompare(b.at))
+  return { xp: xpValues.length ? Math.max(...xpValues) : 0, records, submissions, events }
+}
+
+interface AppState {
+  /* auth */
+  accounts: Account[]
+  user: User | null
+  onboarded: boolean
+
+  /* progression — one slice per user, keyed by User.id */
+  progressByUserId: Record<string, UserProgress>
 
   /* ui */
   theme: 'dark' | 'light'
@@ -117,19 +199,55 @@ function nowIso(): string {
   return new Date().toISOString()
 }
 
+/**
+ * v0/v1 persisted store: XP, records, submissions … at the top level, so every
+ * account on the browser shared one progress state. Move it into the
+ * signed-in user's slice; signed-out legacy progress is not claimable.
+ */
+export function migrateLegacyProgress(persisted: unknown, version: number): unknown {
+  const stored = (persisted ?? {}) as Record<string, unknown>
+  if (version >= 2) return stored
+  const legacy: UserProgress = {
+    xp: (stored.xp as number) ?? 0,
+    records: (stored.records as Record<string, MissionRecord>) ?? {},
+    taskChecks: (stored.taskChecks as Record<string, number[]>) ?? {},
+    submissions: (stored.submissions as Submission[]) ?? [],
+    achievements: (stored.achievements as string[]) ?? [],
+    events: (stored.events as AnalyticsEvent[]) ?? [],
+    findings: (stored.findings as AuditFindingDraft[]) ?? [],
+  }
+  const uid = (stored.user as User | undefined)?.id
+  const migrated: Record<string, unknown> = {
+    ...stored,
+    progressByUserId: uid ? { [uid]: legacy } : {},
+  }
+  for (const key of ['xp', 'records', 'taskChecks', 'submissions', 'achievements', 'events', 'findings']) {
+    delete migrated[key]
+  }
+  return migrated
+}
+
+/**
+ * Return the partial state that replaces the signed-in user's progress slice.
+ * No-op (empty object) when signed out, so `set(updateActive(...))` is safe.
+ */
+function updateActive(
+  state: Pick<AppState, 'user' | 'progressByUserId'>,
+  update: (p: UserProgress) => Partial<UserProgress>,
+): Partial<Pick<AppState, 'progressByUserId'>> {
+  const uid = state.user?.id
+  if (!uid) return {}
+  const prev = selectMyProgress(state)
+  return { progressByUserId: { ...state.progressByUserId, [uid]: { ...prev, ...update(prev) } } }
+}
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       accounts: DEMO_ACCOUNTS,
       user: null,
       onboarded: false,
-      xp: 0,
-      records: {},
-      taskChecks: {},
-      submissions: [],
-      achievements: [],
-      events: [],
-      findings: [],
+      progressByUserId: {},
       theme: 'dark',
       adminMissions: [],
       deletedMissionIds: [],
@@ -197,58 +315,83 @@ export const useAppStore = create<AppState>()(
 
       startMission: (missionId) => {
         const state = get()
-        const completed = new Set(Object.entries(state.records).filter(([, r]) => r.status === 'completed').map(([id]) => id))
+        const uid = state.user?.id
+        if (!uid) return false
+        const p = selectMyProgress(state)
+        const completed = new Set(
+          Object.entries(p.records)
+            .filter(([, r]) => r.status === 'completed')
+            .map(([id]) => id),
+        )
         if (!isMissionUnlocked(missionId, completed)) return false
-        if (state.records[missionId]) return true
-        set({
-          records: {
-            ...state.records,
-            [missionId]: {
-              status: 'in-progress',
-              startedAt: nowIso(),
-              attempts: 0,
-              firstTryCorrect: true,
-              hintsUsed: 0,
-              hintXp: 0,
-              questionsCorrect: 0,
-              questionsTotal: getMission(missionId)?.questions.length ?? 0,
+        if (p.records[missionId]) return true
+        set(
+          updateActive(state, (cur) => ({
+            records: {
+              ...cur.records,
+              [missionId]: {
+                status: 'in-progress',
+                startedAt: nowIso(),
+                attempts: 0,
+                firstTryCorrect: true,
+                hintsUsed: 0,
+                hintXp: 0,
+                questionsCorrect: 0,
+                questionsTotal: getMission(missionId)?.questions.length ?? 0,
+              },
             },
-          },
-        })
+          })),
+        )
         state.trackEvent('mission_started', { missionId })
         return true
       },
 
-      toggleTaskCheck: (missionId, index) => {
-        const current = get().taskChecks[missionId] ?? []
-        const next = current.includes(index)
-          ? current.filter((i) => i !== index)
-          : [...current, index]
-        set({ taskChecks: { ...get().taskChecks, [missionId]: next } })
-      },
+      toggleTaskCheck: (missionId, index) =>
+        set(
+          updateActive(get(), (p) => {
+            const current = p.taskChecks[missionId] ?? []
+            const next = current.includes(index)
+              ? current.filter((i) => i !== index)
+              : [...current, index]
+            return { taskChecks: { ...p.taskChecks, [missionId]: next } }
+          }),
+        ),
 
       useHint: (missionId, cost, hintId) => {
-        const rec = get().records[missionId]
+        const state = get()
+        if (!state.user?.id) return
+        const rec = selectMyProgress(state).records[missionId]
         if (!rec) return
         if (hintId && (rec.revealedHints ?? []).includes(hintId)) return
-        set({
-          records: {
-            ...get().records,
-            [missionId]: {
-              ...rec,
-              hintsUsed: rec.hintsUsed + 1,
-              hintXp: (rec.hintXp ?? 0) + cost,
-              revealedHints: hintId ? [...(rec.revealedHints ?? []), hintId] : rec.revealedHints,
+        set(
+          updateActive(state, (p) => ({
+            records: {
+              ...p.records,
+              [missionId]: {
+                ...rec,
+                hintsUsed: rec.hintsUsed + 1,
+                hintXp: (rec.hintXp ?? 0) + cost,
+                revealedHints: hintId ? [...(rec.revealedHints ?? []), hintId] : rec.revealedHints,
+              },
             },
-          },
-        })
-        get().trackEvent('hint_requested', { missionId, value: cost })
+          })),
+        )
+        state.trackEvent('hint_requested', { missionId, value: cost })
       },
 
       submitAnswer: (mission, question, input) => {
         const result = validateAnswer(question, input)
+        const base = {
+          correct: result.correct,
+          malformed: result.malformed,
+          expected: result.expected,
+        }
         const state = get()
-        const rec = state.records[mission.id]
+        const uid = state.user?.id
+        if (!uid) return base
+
+        const p = selectMyProgress(state)
+        const rec = p.records[mission.id]
         const submission: Submission = {
           id: randomId(),
           missionId: mission.id,
@@ -263,50 +406,56 @@ export const useAppStore = create<AppState>()(
           attempts: (rec?.attempts ?? 0) + 1,
           at: nowIso(),
         }
-
-        const alreadyCorrect = state.submissions.some(
+        const alreadyCorrect = p.submissions.some(
           (s) => s.questionId === question.id && s.correct,
         )
         const correctNow = result.correct && !alreadyCorrect
 
-        if (rec) {
-          const records = { ...state.records }
-          const updated = { ...rec, attempts: rec.attempts + 1 }
-          if (correctNow) updated.questionsCorrect = rec.questionsCorrect + 1
-          if (!result.correct && rec.attempts === 0) updated.firstTryCorrect = false
-          records[mission.id] = updated
-          set({ records })
-        }
+        set(
+          updateActive(state, (cur) => ({
+            records: rec
+              ? {
+                  ...cur.records,
+                  [mission.id]: {
+                    ...rec,
+                    attempts: rec.attempts + 1,
+                    questionsCorrect: correctNow
+                      ? rec.questionsCorrect + 1
+                      : rec.questionsCorrect,
+                    firstTryCorrect:
+                      !result.correct && rec.attempts === 0 ? false : rec.firstTryCorrect,
+                  },
+                }
+              : cur.records,
+            submissions: [...cur.submissions, submission],
+          })),
+        )
 
-        set({ submissions: [...get().submissions, submission] })
-        get().trackEvent('submission_made', { missionId: mission.id, questionId: question.id })
-        get().trackEvent('question_answered', { missionId: mission.id, questionId: question.id })
-        get().trackEvent(result.correct ? 'correct_answer' : 'incorrect_answer', {
+        state.trackEvent('submission_made', { missionId: mission.id, questionId: question.id })
+        state.trackEvent('question_answered', { missionId: mission.id, questionId: question.id })
+        state.trackEvent(result.correct ? 'correct_answer' : 'incorrect_answer', {
           missionId: mission.id,
           questionId: question.id,
         })
 
-        if (result.correct) {
+        if (result.correct && !alreadyCorrect && rec?.firstTryCorrect) {
           // small XP for nailing a question first try
-          if (!alreadyCorrect && rec?.firstTryCorrect) {
-            set({ xp: get().xp + 10 })
-            get().trackEvent('xp_earned', { missionId: mission.id, value: 10 })
-          }
+          set(updateActive(get(), (cur) => ({ xp: cur.xp + 10 })))
+          state.trackEvent('xp_earned', { missionId: mission.id, value: 10 })
         }
 
-        return {
-          correct: result.correct,
-          malformed: result.malformed,
-          expected: result.expected,
-        }
+        return base
       },
 
       completeMission: (missionId) => {
         const state = get()
+        const uid = state.user?.id
+        if (!uid) return null
         const mission =
           state.adminMissions.find((m) => m.id === missionId) ?? getMission(missionId)
         if (!mission) return null
-        const rec = state.records[missionId]
+        const p = selectMyProgress(state)
+        const rec = p.records[missionId]
         if (!rec || rec.status === 'completed') return null
 
         const base = mission.xp
@@ -317,7 +466,7 @@ export const useAppStore = create<AppState>()(
         const earned = missionXp + bonus
 
         const records: Record<string, MissionRecord> = {
-          ...state.records,
+          ...p.records,
           [missionId]: {
             ...rec,
             status: 'completed',
@@ -325,21 +474,22 @@ export const useAppStore = create<AppState>()(
           },
         }
 
-        const prevAchievements = state.achievements
         const completedIds = new Set(
           Object.entries(records)
             .filter(([, r]) => r.status === 'completed')
             .map(([id]) => id),
         )
         const newAchievements = checkAchievements(completedIds, records).filter(
-          (a) => !prevAchievements.includes(a.id),
+          (a) => !p.achievements.includes(a.id),
         )
 
-        set({
-          records,
-          xp: state.xp + earned,
-          achievements: [...prevAchievements, ...newAchievements.map((a) => a.id)],
-        })
+        set(
+          updateActive(state, () => ({
+            records,
+            xp: p.xp + earned,
+            achievements: [...p.achievements, ...newAchievements.map((a) => a.id)],
+          })),
+        )
 
         state.trackEvent('mission_completed', { missionId })
         state.trackEvent('xp_earned', { missionId, value: earned })
@@ -354,60 +504,65 @@ export const useAppStore = create<AppState>()(
 
       addFinding: (finding) => {
         const id = randomId()
-        set({
-          findings: [
-            ...get().findings,
-            { ...finding, id, createdAt: nowIso() },
-          ],
-        })
+        set(
+          updateActive(get(), (p) => ({
+            findings: [...p.findings, { ...finding, id, createdAt: nowIso() }],
+          })),
+        )
         return id
       },
 
       updateFinding: (id, patch) =>
-        set({ findings: get().findings.map((f) => (f.id === id ? { ...f, ...patch } : f)) }),
+        set(
+          updateActive(get(), (p) => ({
+            findings: p.findings.map((f) => (f.id === id ? { ...f, ...patch } : f)),
+          })),
+        ),
 
-      removeFinding: (id) => set({ findings: get().findings.filter((f) => f.id !== id) }),
+      removeFinding: (id) =>
+        set(updateActive(get(), (p) => ({ findings: p.findings.filter((f) => f.id !== id) }))),
 
       trackEvent: (type, props) => {
+        const state = get()
+        if (!state.user?.id) return
         const event: AnalyticsEvent = {
           id: randomId(),
           type,
           at: nowIso(),
           ...props,
         }
-        const events = [...get().events, event]
-        // keep the log bounded
-        set({ events: events.slice(-3000) })
+        set(
+          updateActive(state, (p) => ({
+            events: [...p.events, event].slice(-3000),
+          })),
+        )
       },
 
-      resetProgress: () =>
-        set({
-          xp: 0,
-          records: {},
-          taskChecks: {},
-          submissions: [],
-          achievements: [],
-          findings: [],
-          events: [],
-        }),
+      resetProgress: () => set(updateActive(get(), () => ({ ...EMPTY_PROGRESS }))),
 
       unlockAll: () => {
-        const records = { ...get().records }
-        for (const m of allMissions()) {
-          if (!records[m.id]) {
-            records[m.id] = {
-              status: 'in-progress',
-              startedAt: nowIso(),
-              attempts: 0,
-              firstTryCorrect: true,
-              hintsUsed: 0,
-              hintXp: 0,
-              questionsCorrect: 0,
-              questionsTotal: m.questions.length,
+        const state = get()
+        if (!state.user?.id) return
+        set(
+          updateActive(state, (p) => {
+            const records = { ...p.records }
+            for (const m of allMissions()) {
+              if (!records[m.id]) {
+                records[m.id] = {
+                  status: 'in-progress',
+                  startedAt: nowIso(),
+                  attempts: 0,
+                  firstTryCorrect: true,
+                  hintsUsed: 0,
+                  hintXp: 0,
+                  questionsCorrect: 0,
+                  questionsTotal: m.questions.length,
+                }
+              }
             }
-          }
-        }
-        set({ records })
+            return { records }
+          }),
+        )
       },
 
       upsertAdminMission: (mission) => {
@@ -428,22 +583,18 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'auditlab-store-v1',
+      version: 2,
       storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({
         accounts: s.accounts,
         user: s.user,
         onboarded: s.onboarded,
-        xp: s.xp,
-        records: s.records,
-        taskChecks: s.taskChecks,
-        submissions: s.submissions,
-        achievements: s.achievements,
-        events: s.events,
-        findings: s.findings,
+        progressByUserId: s.progressByUserId,
         theme: s.theme,
         adminMissions: s.adminMissions,
         deletedMissionIds: s.deletedMissionIds,
       }),
+      migrate: migrateLegacyProgress,
     },
   ),
 )
@@ -500,7 +651,7 @@ export function allMissions(): Mission[] {
   return [...seeds, ...custom]
 }
 
-export function completedSet(state: Pick<AppState, 'records'>): Set<string> {
+export function completedSet(state: Pick<UserProgress, 'records'>): Set<string> {
   return new Set(
     Object.entries(state.records)
       .filter(([, r]) => r.status === 'completed')

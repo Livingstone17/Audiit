@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -8,7 +8,7 @@ import {
   Save,
   Trash2,
 } from 'lucide-react'
-import { allMissions, useAppStore } from '../../store/app'
+import { allMissions, useAppStore, mergeProgress } from '../../store/app'
 import { CONCLUSIONS, type Conclusion, type LearnConcept, type Mission, type Question, type QuestionType } from '../../lib/types'
 import { LEVELS } from '../../lib/levels'
 import { DATASET_IDS } from '../../datasets/registry'
@@ -45,7 +45,11 @@ function toPlain(mission: Mission): Mission {
 
 export function AdminMissions() {
   const missions = allMissions()
-  const records = useAppStore((s) => s.records)
+  const progressByUserId = useAppStore((s) => s.progressByUserId)
+  const records = useMemo(
+    () => mergeProgress(Object.values(progressByUserId)).records,
+    [progressByUserId],
+  )
   const deleteAdminMission = useAppStore((s) => s.deleteAdminMission)
   const push = useToasts((s) => s.push)
   const [pendingDelete, setPendingDelete] = useState<Mission | null>(null)

@@ -9,7 +9,7 @@ to the platform, receive immediate feedback, earn XP, unlock levels and eventual
 complete a full **Procurement Audit** boss case.
 
 The fictional client is **Apex Manufacturing Group** (Lagos plant, Ibadan warehouse,
-Port Harcourt distribution centre) — the same organisation appears across all 24
+Port Harcourt distribution centre) — the same organisation appears across all 40
 missions so learners feel like they are conducting a real audit.
 
 ## Quick start
@@ -35,13 +35,15 @@ Or create a new account — onboarding takes ~10 seconds.
 | `npm run dev` | Vite dev server |
 | `npm run build` | Typecheck (`tsc -b`) + production build |
 | `npm run preview` | Serve the production build |
-| `npm test` | Vitest suite (datasets, missions, validation, app smoke tests) |
+| `npm test` | Vitest suite (datasets, missions, validation, per-user progress, contrast, app smoke tests) |
 | `npm run lint` | oxlint (0 errors, 0 warnings) |
 
 ## What is inside
 
-- **24 missions** across four levels: Excel Foundations (10), Procurement Audit (8),
-  Procurement Investigation (5) and the final **THE PROCUREMENT AUDIT** boss case.
+- **40 missions** across five levels: Audit Trainee (14), Audit Analyst (15),
+  Internal Auditor (7), the **Senior Audit Analyst** boss level (1 — **THE
+  PROCUREMENT AUDIT** engagement) and Audit Analytics Specialist (3). Two further
+  levels (Audit Investigator, Audit Manager) are planned.
 - **Six challenge types**: multiple choice, Excel formula, numeric, written response,
   exception selection and audit conclusion classification.
 - **Deterministic dataset engine** — generates .xlsx registers (320 / 2,400 / 10,500
@@ -50,14 +52,16 @@ Or create a new account — onboarding takes ~10 seconds.
   approval breaches, split purchases, price outliers, shared bank accounts, inactive
   vendors, duplicate and early payments. Expected answers are computed from the same
   engine, so marking is always consistent with the data.
-- **Progressive hints** with XP costs, a solution reveal, immediate per-question
-  feedback and first-try bonuses.
-- **XP → levels** (Audit Trainee → Audit Manager; first 4 levels live), badges,
-  accuracy tracking, skills and a non-speed-based leaderboard.
+- **Progressive hints** (105 across the curriculum) with XP costs, a solution
+  reveal, immediate per-question feedback and first-try bonuses.
+- **XP → levels** (an 8-step ladder from Audit Trainee to Audit Manager; the
+  first 5 progression levels have live content), badges, accuracy tracking,
+  skills and a non-speed-based leaderboard.
 - **Audit finding template** (Condition · Criteria · Cause · Effect · Recommendation)
   used by the boss case, with a scored engagement summary.
-- **Admin area**: mission library CRUD (scenario, tasks, XP, questions, hints), learner
-  submissions, analytics (attempts, success rates, hint usage, drop-off points).
+- **Admin area**: mission library CRUD (scenario, tasks, XP, questions, hints),
+  learner submissions, analytics (attempts, success rates, hint usage, drop-off
+  points). Admin views aggregate every account on the browser via `mergeProgress`.
 - **Dark mode first**, light mode optional, fully responsive with a "desktop recommended"
   notice for practical dataset work.
 
@@ -66,22 +70,31 @@ Or create a new account — onboarding takes ~10 seconds.
 ```
 src/
 ├── components/        UI kit, brand, mission components (cards, hints, questions, findings)
-├── data/              Apex company data, achievements, leaderboard peers, 24 mission seeds
-├── datasets/          Deterministic generators, registry, audit analysis, xlsx/pdf export
+├── data/              Apex company data, achievements, learn links, leaderboard peers,
+│                      40 mission seeds across five levels
+├── datasets/          Deterministic generators, registry, xlsx/pdf export
 ├── hooks/             Derived progress hooks (XP, level, skills)
 ├── layout/            App shell (sidebar + mobile drawer)
 ├── lib/               Types, validation engine, levels, utils, seeded RNG
 ├── pages/             Dashboard, Learn, Missions, Mission workspace, Progress,
 │                      Leaderboard, Profile, auth, admin
-├── store/             Zustand stores: app state (auth/progress/XP/admin) + toasts
-└── tests/             Vitest suites (30 tests)
+├── store/             Zustand stores: app state (auth/per-user progress/admin) + toasts
+└── tests/             Vitest suites (7 files, 104 tests)
 ```
 
 Key decisions:
 
-- **Local-first**: all state persists to `localStorage` (`auditlab-store-v1`), so the app
-  runs with zero backend setup. The store is the single seam for swapping in
-  Supabase (auth/Postgres/RLS) later — replace the actions in `src/store/app.ts`.
+- **Local-first with per-user progress**: all state persists to `localStorage`
+  (`auditlab-store-v1`), so the app runs with zero backend setup. Every account
+  gets its own progression slice (`progressByUserId`, keyed by `User.id`) — two
+  accounts on one browser never share XP, records, submissions, badges, finding
+  drafts or analytics events. Legacy v0/v1 payloads are migrated into the
+  signed-in user's slice on rehydrate (`migrateLegacyProgress`). The store is
+  the single seam for swapping in Supabase (auth/Postgres/RLS) later — replace
+  the actions in `src/store/app.ts`.
+- **Admin analytics aggregate across users**: `mergeProgress` merges every
+  account's slice — completion outranks in-progress, attempts/hints take the
+  max, submissions and events are concatenated chronologically.
 - **Mission answers as code**: dataset-derived answers are functions over the
   deterministic generators (`() => duplicateRecordCount('pr-full')`), resolved at
   validation time and flattened to static values by the admin editor.

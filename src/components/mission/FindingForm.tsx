@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AlertTriangle, ClipboardCheck, FileWarning, Plus, Trash2 } from 'lucide-react'
-import { useAppStore } from '../../store/app'
+import { useAppStore, selectMyProgress } from '../../store/app'
 import { useToasts } from '../../store/toasts'
 import { Button } from '../ui/button'
 import { Input, Textarea } from '../ui/forms'
@@ -40,7 +40,7 @@ export function FindingsSection({
   missionId: string
   minRequired?: number
 }) {
-  const findings = useAppStore((s) => s.findings).filter((f) => f.missionId === missionId)
+  const findings = useAppStore((s) => selectMyProgress(s).findings).filter((f) => f.missionId === missionId)
   const addFinding = useAppStore((s) => s.addFinding)
   const removeFinding = useAppStore((s) => s.removeFinding)
   const push = useToasts((s) => s.push)

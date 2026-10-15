@@ -7,7 +7,7 @@ import {
   Target,
   Zap,
 } from 'lucide-react'
-import { useAppStore } from '../store/app'
+import { useAppStore, selectMyProgress } from '../store/app'
 import { useProgress } from '../hooks/useProgress'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card'
 import { Badge, DifficultyBadge } from '../components/ui/badge'
@@ -20,7 +20,7 @@ import { cn, timeAgo } from '../lib/utils'
 
 export function DashboardPage() {
   const user = useAppStore((s) => s.user)
-  const events = useAppStore((s) => s.events)
+  const events = useAppStore((s) => selectMyProgress(s).events)
   const { xp, levelInfo, next, missions, completed, skills, achievements, records, missionsCompleted, totalMissions, accuracy } =
     useProgress()
 

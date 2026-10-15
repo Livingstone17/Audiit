@@ -12,7 +12,7 @@ import {
   Trophy,
   Zap,
 } from 'lucide-react'
-import { allMissions, useAppStore } from '../store/app'
+import { allMissions, useAppStore, selectMyProgress } from '../store/app'
 import { isMissionUnlocked, nextMission, countHintsUsed, countSolutionsShown } from '../data/missions'
 import { Badge, DifficultyBadge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -32,7 +32,7 @@ const NO_TASK_CHECKS: number[] = []
 
 export function MissionWorkspacePage() {
   const { id } = useParams<{ id: string }>()
-  const records = useAppStore((s) => s.records)
+  const records = useAppStore((s) => selectMyProgress(s).records)
   const missions = allMissions()
   const mission = missions.find((m) => m.id === id)
 
@@ -96,13 +96,15 @@ function MissionBody({ mission, unlocked }: { mission: Mission; unlocked: Set<st
   const push = useToasts((s) => s.push)
 
   const user = useAppStore((s) => s.user)
-  const record = useAppStore((s) => s.records[mission.id])
-  const submissions = useAppStore((s) => s.submissions)
+  const record = useAppStore((s) => selectMyProgress(s).records[mission.id])
+  const submissions = useAppStore((s) => selectMyProgress(s).submissions)
   const startMission = useAppStore((s) => s.startMission)
   const completeMission = useAppStore((s) => s.completeMission)
-  const findings = useAppStore((s) => s.findings)
+  const findings = useAppStore((s) => selectMyProgress(s).findings)
 
-  const taskChecks = useAppStore((s) => s.taskChecks[mission.id] ?? NO_TASK_CHECKS)
+  const taskChecks = useAppStore(
+    (s) => selectMyProgress(s).taskChecks[mission.id] ?? NO_TASK_CHECKS,
+  )
   const toggleTaskCheck = useAppStore((s) => s.toggleTaskCheck)
   const [celebration, setCelebration] = useState<{
     earned: number

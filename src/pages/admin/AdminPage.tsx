@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import {
   BarChart3,
@@ -7,7 +8,7 @@ import {
   ShieldCheck,
   TicketCheck,
 } from 'lucide-react'
-import { useAppStore, allMissions } from '../../store/app'
+import { useAppStore, allMissions, mergeProgress } from '../../store/app'
 import { MISSIONS } from '../../data/missions'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
@@ -30,9 +31,11 @@ const TABS = [
 export function AdminPage() {
   const user = useAppStore((s) => s.user)
   const updateUser = useAppStore((s) => s.updateUser)
-  const records = useAppStore((s) => s.records)
-  const submissions = useAppStore((s) => s.submissions)
-  const events = useAppStore((s) => s.events)
+  const progressByUserId = useAppStore((s) => s.progressByUserId)
+  const { records, submissions, events } = useMemo(
+    () => mergeProgress(Object.values(progressByUserId)),
+    [progressByUserId],
+  )
   const location = useLocation()
   const navigate = useNavigate()
   const missions = allMissions()
