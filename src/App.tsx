@@ -65,6 +65,26 @@ function shell(page: ReactNode) {
   )
 }
 
+/** The admin area is only routable for signed-in administrators. */
+function RequireAdmin({ children }: { children: ReactNode }) {
+  const user = useAppStore((s) => s.user)
+  if (!user) return <Navigate to="/login" replace state={{ from: '/admin' }} />
+  if (user.role !== 'admin') return <Navigate to="/" replace />
+  return <>{children}</>
+}
+
+function shellAdmin(page: ReactNode) {
+  return (
+    <RequireAuth>
+      <RequireAdmin>
+        <AppShell>
+          <Suspense fallback={<PageFallback />}>{page}</Suspense>
+        </AppShell>
+      </RequireAdmin>
+    </RequireAuth>
+  )
+}
+
 export default function App() {
   const theme = useAppStore((s) => s.theme)
 
@@ -86,7 +106,7 @@ export default function App() {
         <Route path="/progress" element={shell(<ProgressPage />)} />
         <Route path="/leaderboard" element={shell(<LeaderboardPage />)} />
         <Route path="/profile" element={shell(<ProfilePage />)} />
-        <Route path="/admin/*" element={shell(<AdminPage />)} />
+        <Route path="/admin/*" element={shellAdmin(<AdminPage />)} />
         <Route path="*" element={shell(<NotFoundPage />)} />
       </Routes>
     </>

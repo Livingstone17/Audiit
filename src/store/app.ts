@@ -70,10 +70,20 @@ export interface UserProgress {
   records: Record<string, MissionRecord>
   /** checked task indices per mission — the mission checklist, persisted */
   taskChecks: Record<string, number[]>
+  /** newest-wins log capped at SUBMISSIONS_CAP so localStorage stays bounded */
   submissions: Submission[]
   achievements: string[]
   events: AnalyticsEvent[]
   findings: AuditFindingDraft[]
+}
+
+/** Newest-wins cap on the persisted submissions log, applied per user. */
+export const SUBMISSIONS_CAP = 500
+
+function capSubmissions(submissions: Submission[]): Submission[] {
+  return submissions.length > SUBMISSIONS_CAP
+    ? submissions.slice(-SUBMISSIONS_CAP)
+    : submissions
 }
 
 export const EMPTY_PROGRESS: UserProgress = {
@@ -211,7 +221,7 @@ export function migrateLegacyProgress(persisted: unknown, version: number): unkn
     xp: (stored.xp as number) ?? 0,
     records: (stored.records as Record<string, MissionRecord>) ?? {},
     taskChecks: (stored.taskChecks as Record<string, number[]>) ?? {},
-    submissions: (stored.submissions as Submission[]) ?? [],
+    submissions: capSubmissions((stored.submissions as Submission[]) ?? []),
     achievements: (stored.achievements as string[]) ?? [],
     events: (stored.events as AnalyticsEvent[]) ?? [],
     findings: (stored.findings as AuditFindingDraft[]) ?? [],
@@ -427,7 +437,7 @@ export const useAppStore = create<AppState>()(
                   },
                 }
               : cur.records,
-            submissions: [...cur.submissions, submission],
+            submissions: capSubmissions([...cur.submissions, submission]),
           })),
         )
 

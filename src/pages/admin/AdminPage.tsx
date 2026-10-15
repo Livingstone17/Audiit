@@ -30,7 +30,6 @@ const TABS = [
 
 export function AdminPage() {
   const user = useAppStore((s) => s.user)
-  const updateUser = useAppStore((s) => s.updateUser)
   const progressByUserId = useAppStore((s) => s.progressByUserId)
   const { records, submissions, events } = useMemo(
     () => mergeProgress(Object.values(progressByUserId)),
@@ -45,21 +44,11 @@ export function AdminPage() {
       <EmptyState
         icon={<ShieldCheck size={34} />}
         title="Administrator access required"
-        description="The admin area manages mission content and learner analytics. Enable admin access from your profile to explore it in this demo."
+        description="The admin area manages mission content and learner analytics. Sign in with an administrator account (admin@auditlab.app in this demo)."
         action={
-          <div className="flex gap-2">
-            <Button
-              onClick={() => {
-                if (user) updateUser({ role: 'admin' })
-                navigate('/admin')
-              }}
-            >
-              Enable admin access
-            </Button>
-            <Link to="/profile">
-              <Button variant="secondary">Go to profile</Button>
-            </Link>
-          </div>
+          <Link to="/">
+            <Button>Back to dashboard</Button>
+          </Link>
         }
       />
     )

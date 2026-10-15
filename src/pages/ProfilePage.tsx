@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   LogOut,
   RotateCcw,
-  Settings2,
   Sparkles,
   Unlock,
   UserCog,
@@ -238,19 +237,6 @@ export function ProfilePage() {
             }}
           >
             <Unlock size={15} /> Unlock all missions
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              updateUser({ role: user.role === 'admin' ? 'learner' : 'admin' })
-              push({
-                variant: 'success',
-                title: user.role === 'admin' ? 'Switched to learner view' : 'Admin access enabled',
-              })
-            }}
-          >
-            <Settings2 size={15} />{' '}
-            {user.role === 'admin' ? 'Switch to learner view' : 'Enable admin access'}
           </Button>
           <Button variant="danger" onClick={() => setConfirmReset(true)}>
             <RotateCcw size={15} /> Reset progress

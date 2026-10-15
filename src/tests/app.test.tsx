@@ -171,4 +171,13 @@ describe('app smoke tests', () => {
     expect(screen.getByText('zoe@auditlab.app')).toBeTruthy()
     expect(screen.getByText('admin@auditlab.app')).toBeTruthy()
   })
+
+  it('redirects non-admins away from /admin', async () => {
+    renderAt('/admin')
+    /* learner lands back on the dashboard… */
+    expect(await screen.findByText('Welcome back, Zoe')).toBeTruthy()
+    /* …and none of the admin area is mounted */
+    expect(screen.queryByText('Mission library')).toBeNull()
+    expect(screen.queryByText('Administrator access required')).toBeNull()
+  })
 })

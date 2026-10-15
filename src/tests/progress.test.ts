@@ -29,9 +29,11 @@ const {
   selectMyProgress,
   mergeProgress,
   migrateLegacyProgress,
+  SUBMISSIONS_CAP,
   EMPTY_PROGRESS,
   DEMO_ACCOUNTS,
 } = await import('../store/app')
+const { MISSIONS } = await import('../data/missions')
 
 function resetStore() {
   useAppStore.setState({
@@ -109,6 +111,38 @@ describe('per-user progress', () => {
     useAppStore.getState().toggleTaskCheck('m01', 0)
     useAppStore.getState().useHint('m01', 10)
     expect(mem.get('auditlab-store-v1')).toBe(before)
+  })
+
+  it('caps the per-user submissions log at SUBMISSIONS_CAP', () => {
+    loginAs('zoe@auditlab.app', 'demo1234')
+    expect(useAppStore.getState().startMission('m01')).toBe(true)
+
+    const bloat = Array.from({ length: SUBMISSIONS_CAP + 5 }, (_, i) => ({
+      id: `old-${i}`,
+      missionId: 'm01',
+      questionId: `m01-q${(i % 3) + 1}`,
+      answer: 'x',
+      correct: false,
+      attempts: 1,
+      at: '2025-01-01T00:00:00.000Z',
+    }))
+    useAppStore.setState((s) => ({
+      progressByUserId: {
+        ...s.progressByUserId,
+        'u-zoe': { ...EMPTY_PROGRESS, submissions: bloat },
+      },
+    }))
+
+    /* one more submission trims the oldest entries, not the new one */
+    const mission = MISSIONS.find((m) => m.id === 'm01')!
+    const question = mission.questions[0]!
+    useAppStore.getState().submitAnswer(mission, question, { optionId: 'opt-a' })
+
+    const subs = selectMyProgress(useAppStore.getState()).submissions
+    expect(subs).toHaveLength(SUBMISSIONS_CAP)
+    expect(subs[0]!.id).not.toBe('old-0')
+    expect(subs.at(-1)?.id).not.toMatch(/^old-/)
+    expect(subs.at(-1)?.missionId).toBe('m01')
   })
 
   it('persists one slice per user under version 2', () => {
