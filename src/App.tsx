@@ -92,9 +92,11 @@ export default function App() {
     document.documentElement.classList.toggle('dark', theme === 'dark')
   }, [theme])
 
-  /* load the 40-mission seed catalogue after first paint (code-split) */
+  /* load the 40-mission seed catalogue after first paint (code-split) and
+   * re-hydrate any Supabase session so cloud progress can sync in */
   useEffect(() => {
     void ensureCatalogue()
+    void useAppStore.getState().restoreSession()
   }, [])
 
   return (

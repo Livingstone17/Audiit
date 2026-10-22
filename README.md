@@ -28,6 +28,10 @@ Open http://localhost:5173 and sign in with a demo account:
 
 Or create a new account — onboarding takes ~10 seconds.
 
+This works with **no backend at all** — everything is saved in the browser. To
+switch on Supabase (shared accounts + cloud progress) see
+[Backend: Supabase](#backend-supabase).
+
 ## Scripts
 
 | Command | Purpose |
@@ -75,11 +79,16 @@ src/
 ├── datasets/          Deterministic generators, registry, xlsx/pdf export
 ├── hooks/             Derived progress hooks (XP, level, skills)
 ├── layout/            App shell (sidebar + mobile drawer)
-├── lib/               Types, validation engine, levels, utils, seeded RNG
+├── lib/               Types, validation engine, levels, utils, seeded RNG,
+│                      Supabase client + cloud-sync layer (sync.ts)
 ├── pages/             Dashboard, Learn, Missions, Mission workspace, Progress,
 │                      Leaderboard, Profile, auth, admin
-├── store/             Zustand stores: app state (auth/per-user progress/admin) + toasts
-└── tests/             Vitest suites (8 files, 115 tests)
+├── store/             Zustand stores: app state (auth/per-user progress/admin),
+│                      cloud sync lifecycle + toasts
+└── tests/             Vitest suites (12 files, 139 tests)
+
+supabase/
+└── migrations/        Postgres schema + RLS migration (0001_init.sql)
 ```
 
 Key decisions:
@@ -89,12 +98,15 @@ Key decisions:
   gets its own progression slice (`progressByUserId`, keyed by `User.id`) — two
   accounts on one browser never share XP, records, submissions, badges, finding
   drafts or analytics events. Legacy v0/v1 payloads are migrated into the
-  signed-in user's slice on rehydrate (`migratePersistedState`). Accounts store
-  **salted SHA-256 password hashes** (`lib/hash.ts`) — raw passwords never touch
-  localStorage, and v0–v2 payloads are hashed during migration. Demo
+  signed-in user's slice on rehydrate (`migratePersistedState`). Local accounts
+  store **salted SHA-256 password hashes** (`lib/hash.ts`) — raw passwords never
+  touch localStorage, and v0–v2 payloads are hashed during migration. Demo
   credentials are printed in the README on purpose; they are demo accounts.
-  The store is the single seam for swapping in Supabase (auth/Postgres/RLS)
-  later — replace the actions in `src/store/app.ts`.
+- **Supabase is an optional mirror, not a dependency**: with
+  `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` set, auth moves to Supabase and
+  learner data is synced to Postgres with RLS. The localStorage slice stays the
+  source of truth, so the app keeps working offline and the cloud copy can never
+  clobber newer local work — see [Backend: Supabase](#backend-supabase).
 - **Admin analytics aggregate across users**: `mergeProgress` merges every
   account's slice — completion outranks in-progress, attempts/hints take the
   max, submissions and events are concatenated chronologically.
@@ -108,6 +120,80 @@ Key decisions:
 - **Downloads are generated client-side**: `.xlsx` via `write-excel-file`, the
   procurement policy PDF via lazily-loaded `jsPDF`.
 
+## Backend: Supabase
+
+Learner data lives in `localStorage` first and is **mirrored** to Supabase when
+credentials are present: the browser keeps working offline and the cloud copy is
+what lets a learner continue on another device.
+
+### 1. Create the project
+
+Create a project at <https://supabase.com/dashboard>. For the fastest demo, turn
+off **Authentication → Sign In / Providers → Email → Confirm email** so a new
+signup gets a session immediately. With confirmation on, the signup page asks the
+learner to open the emailed link and sign in, and Supabase's built-in SMTP rate
+limit applies.
+
+### 2. Create the schema
+
+Open **SQL Editor → New query**, paste in
+[`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) and run
+it. That creates six tables (`profiles`, `user_progress`, `mission_records`,
+`submissions`, `analytics_events`, `audit_findings`), enables row-level security
+keyed on `auth.uid()` — owners read/write their own rows, administrators can read
+all of them — and adds a trigger that gives every new user a profile and a
+progress row.
+
+### 3. Point the app at it
+
+```bash
+cp .env.example .env
+```
+
+Fill in the values from **Project Settings → API** and restart `npm run dev`:
+
+```dotenv
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co
+VITE_SUPABASE_ANON_KEY=<anon public key>
+```
+
+The sidebar now shows a sync pill — *Local only* with no credentials, otherwise
+*Cloud ready → Syncing… → Synced*, or *Offline — will sync* when the network
+drops. The Profile page has the same status with a manual **Sync now**.
+
+### 4. Make yourself an administrator
+
+Sign up in the app, then run:
+
+```sql
+update public.profiles set role = 'admin' where id = '<auth user uuid>';
+```
+
+The bundled `admin@auditlab.app` demo account stays local-only and is always an
+admin.
+
+### How syncing works
+
+- `src/lib/sync.ts` is the only module that talks to Postgres.
+- **Push** upserts the whole slice (profile, progress, mission records,
+  submissions, events, findings). Every write is idempotent, so a sync can be
+  replayed as often as needed.
+- **Pull** reads the cloud copy and `mergeUserProgress` merges it with the local
+  slice — completion outranks in-progress, counters take the max, append-only
+  logs are unioned by id. Neither side can lose progress.
+- Sync runs after every mutation (debounced), on login, on boot, and again
+  whenever the browser comes back `online`. Failures are queued: the mutation is
+  already saved locally, `pendingSync` is set, and the flush retries with
+exponential backoff.
+- **Reset progress** deletes the cloud rows and records a `reset_at` watermark,
+  so a reset made while offline cannot be resurrected by a later pull.
+- The browser client never writes `profiles.role`, and a `before update` trigger
+  rejects role changes made by anyone who is not already an administrator — so a
+  learner cannot promote themselves and read every row through the admin
+  policies.
+- With no `VITE_SUPABASE_*` values the sync layer is inert and the build behaves
+  exactly like the local-only app.
+
 ## Deploy (Vercel)
 
 The project is a standard Vite SPA with SPA rewrites in `vercel.json`:
@@ -117,7 +203,9 @@ npm run build   # outputs dist/
 ```
 
 Import the repo in Vercel — framework preset **Vite**, build `npm run build`,
-output `dist`. No environment variables required.
+output `dist`. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to the
+project's environment variables to enable the Supabase backend in production;
+without them the deploy runs local-only.
 
 ## MVP scope (deliberately excluded)
 

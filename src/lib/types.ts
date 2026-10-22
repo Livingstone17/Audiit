@@ -238,6 +238,7 @@ export type AnalyticsEventType =
   | 'module_completed'
   | 'onboarding_completed'
   | 'login'
+  | 'signup'
 
 export interface AnalyticsEvent {
   id: string

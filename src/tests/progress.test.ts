@@ -54,7 +54,7 @@ beforeEach(() => {
 })
 
 const loginAs = async (email: string, password: string) => {
-  const res = useAppStore.getState().login(email, password)
+  const res = await useAppStore.getState().login(email, password)
   expect(res.ok).toBe(true)
 }
 
@@ -68,7 +68,7 @@ describe('password hashing', () => {
     expect(useAppStore.getState().user?.id).toBe('u-zoe')
 
     useAppStore.getState().logout()
-    const wrong = useAppStore.getState().login('zoe@auditlab.app', 'wrong-password')
+    const wrong = await useAppStore.getState().login('zoe@auditlab.app', 'wrong-password')
     expect(wrong.ok).toBe(false)
     expect(wrong.error).toBe('Incorrect password.')
     expect(useAppStore.getState().user).toBeNull()
@@ -190,16 +190,21 @@ describe('per-user progress', () => {
     expect(await start('m01')).toBe(true)
     await useAppStore.getState().completeMission('m01')
 
-    useAppStore.getState().signup('Test User', 'test@example.com', 'test1234')
+    await useAppStore.getState().signup('Test User', 'test@example.com', 'test1234')
     const view = selectMyProgress(useAppStore.getState())
-    expect(view).toBe(EMPTY_PROGRESS)
+    // a fresh account has a clean slice of its own — the only thing recorded at
+    // signup is the analytics event
+    expect(view).not.toBe(EMPTY_PROGRESS)
+    expect(view.xp).toBe(0)
+    expect(Object.keys(view.records)).toHaveLength(0)
+    expect(view.submissions).toHaveLength(0)
     expect(await start('m02')).toBe(false) // locked until m01 done
   })
 
   it('ignores progression actions and events when signed out', async () => {
     await loginAs('zoe@auditlab.app', 'demo1234')
     expect(await start('m01')).toBe(true)
-    useAppStore.getState().logout()
+    await useAppStore.getState().logout()
 
     const before = mem.get('auditlab-store-v1')
     expect(await start('m01')).toBe(false)

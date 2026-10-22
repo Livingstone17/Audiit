@@ -133,6 +133,8 @@ describe('app smoke tests', () => {
     expect(screen.getByText('COUNTIF and COUNTIFS')).toBeTruthy()
     expect(screen.getByText('COUNTIF and COUNTIFS')).toBeTruthy()
     expect(screen.getByText('Level 2: Audit Analyst')).toBeTruthy()
+    /* no VITE_SUPABASE_* in tests, so the sync pill reports local-only mode */
+    expect(screen.getAllByText('Local only').length).toBeGreaterThan(0)
   })
 
   it('renders the mission catalogue', async () => {
@@ -167,11 +169,16 @@ describe('app smoke tests', () => {
     expect(screen.getAllByText(/Zoe Adeniyi/).length).toBeGreaterThan(0)
   })
 
-  it('renders login with demo accounts', async () => {
+  it('renders the login form without publishing demo credentials', async () => {
     renderAt('/login')
     expect(await screen.findByText('Welcome back')).toBeTruthy()
-    expect(screen.getByText('zoe@auditlab.app')).toBeTruthy()
-    expect(screen.getByText('admin@auditlab.app')).toBeTruthy()
+    expect(screen.getByLabelText('Email')).toBeTruthy()
+    expect(screen.getByLabelText('Password')).toBeTruthy()
+    /* the bundled demo logins fill the form from the README, not the page */
+    expect(screen.queryByText('Demo accounts')).toBeNull()
+    expect(screen.queryByText('zoe@auditlab.app')).toBeNull()
+    expect(screen.queryByText('admin@auditlab.app')).toBeNull()
+    expect(screen.queryByText('demo1234')).toBeNull()
   })
 
   it('redirects non-admins away from /admin', async () => {

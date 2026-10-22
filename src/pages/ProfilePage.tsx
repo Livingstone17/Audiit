@@ -4,6 +4,7 @@ import {
   Award,
   CheckCircle2,
   LogOut,
+  RefreshCw,
   RotateCcw,
   Sparkles,
   Unlock,
@@ -17,7 +18,8 @@ import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Input, Select } from '../components/ui/forms'
-import { Dialog } from '../components/ui/overlays'
+import { Alert, Dialog } from '../components/ui/overlays'
+import { SyncBadge } from '../components/SyncBadge'
 import { useToasts } from '../store/toasts'
 import { cn } from '../lib/utils'
 import { useNavigate } from 'react-router-dom'
@@ -28,6 +30,12 @@ export function ProfilePage() {
   const logout = useAppStore((s) => s.logout)
   const resetProgress = useAppStore((s) => s.resetProgress)
   const unlockAll = useAppStore((s) => s.unlockAll)
+  const syncNow = useAppStore((s) => s.syncNow)
+  const syncStatus = useAppStore((s) => s.syncStatus)
+  const syncError = useAppStore((s) => s.syncError)
+  const lastSyncedAt = useAppStore((s) => s.lastSyncedAt)
+  const pendingSync = useAppStore((s) => s.pendingSync)
+  const cloudUserId = useAppStore((s) => s.cloudUserId)
   const push = useToasts((s) => s.push)
   const navigate = useNavigate()
 
@@ -222,11 +230,45 @@ export function ProfilePage() {
         </Card>
       </div>
 
+      {/* Cloud sync */}
+      <div className="mt-8">
+        <SectionHeading
+          title="Cloud sync"
+          subtitle="Progress is stored in this browser first, then mirrored to Supabase whenever it is reachable."
+        />
+        <Card>
+          <CardContent className="flex flex-wrap items-center gap-3 p-4">
+            <SyncBadge />
+            <p className="min-w-0 flex-1 text-sm text-muted-foreground">
+              {!cloudUserId
+                ? 'Local-only mode — set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env to enable cloud sync.'
+                : lastSyncedAt
+                  ? `Last synced ${new Date(lastSyncedAt).toLocaleString()}${pendingSync ? ' · changes pending' : ''}`
+                  : 'Waiting for the first sync…'}
+            </p>
+            {cloudUserId && (
+              <Button
+                variant="secondary"
+                loading={syncStatus === 'syncing'}
+                onClick={() => void syncNow()}
+              >
+                <RefreshCw size={15} /> Sync now
+              </Button>
+            )}
+            {syncError && (
+              <Alert variant="danger" className="w-full">
+                {syncError}
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Demo controls */}
       <div className="mt-8">
         <SectionHeading
           title="Demo controls"
-          subtitle="This build stores everything locally in your browser — use these to explore."
+          subtitle="Use these to explore the curriculum — a reset also clears your cloud copy."
         />
         <div className="flex flex-wrap gap-3">
           <Button

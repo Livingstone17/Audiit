@@ -19,6 +19,7 @@ import { cn } from '../lib/utils'
 import { Wordmark, Avatar } from '../components/brand'
 import { useAppStore, selectMyProgress } from '../store/app'
 import { ToastHost } from '../components/ToastHost'
+import { SyncBadge } from '../components/SyncBadge'
 
 interface NavItem {
   to: string
@@ -131,6 +132,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </button>
         </div>
         <div className="mt-1 flex items-center gap-2 px-2 pb-1">
+          <SyncBadge />
           <button
             onClick={toggleTheme}
             className="flex flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-[12px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -154,6 +156,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur lg:hidden">
         <Wordmark size="sm" />
         <div className="flex items-center gap-1">
+          <SyncBadge />
           <button
             onClick={toggleTheme}
             className="rounded-md p-2 text-muted-foreground hover:text-foreground"
