@@ -249,6 +249,30 @@ describe('cloud sync through the store', () => {
     expect(rows('analytics_events').length).toBeGreaterThan(0)
   })
 
+  it('keeps a stored onboarding answer when the profile read fails', async () => {
+    fakeSupabase.db.tables['profiles'] = [
+      {
+        id: user.id,
+        name: 'Cloud Learner',
+        role: 'learner',
+        persona: 'Audit trainee',
+        excel_level: 'Intermediate',
+        avatar_hue: 152,
+        created_at: '2026-01-01T00:00:00.000Z',
+      },
+    ]
+    /* the sign-in's profile read is the first query, and it fails */
+    fakeSupabase.db.failNext = { message: 'network down' }
+
+    const res = await useAppStore.getState().login('learner@example.com', 'pw123456')
+    expect(res.ok).toBe(true)
+    await flushSync()
+
+    /* the later push must not null out what the failed read could not see */
+    expect(rows('profiles')[0]!.persona).toBe('Audit trainee')
+    expect(rows('profiles')[0]!.excel_level).toBe('Intermediate')
+  })
+
   it('restores a second device from the cloud backup', async () => {
     await useAppStore.getState().login('learner@example.com', 'pw123456')
     expect(await useAppStore.getState().startMission('m01')).toBe(true)

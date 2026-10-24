@@ -292,17 +292,22 @@ export async function fetchProfile(
  * `role` is deliberately never written from the browser: the database trigger
  * rejects role changes from non-admins, and an admin whose profile read
  * transiently failed must not be able to demote themselves by accident.
+ *
+ * `persona` / `excel_level` are only sent when known. A profile read that
+ * failed leaves the in-memory user without them, and writing NULL would erase
+ * an existing onboarding answer — which is what used to send returning
+ * learners back through onboarding.
  */
 export async function pushProfile(client: SupabaseClient, user: User): Promise<void> {
   const { error } = await client.from('profiles').upsert(
     {
       id: user.id,
       name: user.name,
-      persona: user.persona ?? null,
-      excel_level: user.excelLevel ?? null,
       avatar_hue: user.avatarHue ?? null,
       created_at: user.createdAt,
       updated_at: new Date().toISOString(),
+      ...(user.persona ? { persona: user.persona } : {}),
+      ...(user.excelLevel ? { excel_level: user.excelLevel } : {}),
     },
     { onConflict: 'id' },
   )

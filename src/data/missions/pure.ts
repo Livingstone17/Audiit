@@ -1,4 +1,4 @@
-import type { Level, Mission, MissionRecord, MissionStatus } from '../../lib/types'
+import type { Level, Mission, MissionStatus } from '../../lib/types'
 import { LEVELS } from '../../lib/levels'
 
 /**
@@ -57,36 +57,6 @@ export function recommendedMission(missions: Mission[], completed: Set<string>):
     missions.find((m) => !completed.has(m.id) && isMissionUnlocked(missions, m.id, completed)) ??
     missions[missions.length - 1]!
   )
-}
-
-/**
- * Where a returning learner should pick up: the mission they left mid-flight
- * (most recently started), otherwise the next one they can open.
- *
- * `undefined` means "nothing to resume" — a brand-new account, or a learner who
- * has already closed every case — so the caller can show the dashboard instead
- * of pushing them back onto mission 01.
- */
-export function resumeMission(
-  missions: Mission[],
-  records: Record<string, MissionRecord>,
-): Mission | undefined {
-  const started = Object.entries(records)
-  if (!missions.length || started.length === 0) return undefined
-
-  const inProgress = started
-    .filter(([, r]) => r.status === 'in-progress')
-    .sort(([, a], [, b]) => b.startedAt.localeCompare(a.startedAt))
-  for (const [id] of inProgress) {
-    const mission = missions.find((m) => m.id === id)
-    if (mission) return mission
-  }
-
-  const completed = new Set(
-    started.filter(([, r]) => r.status === 'completed').map(([id]) => id),
-  )
-  if (completed.size === missions.length) return undefined
-  return recommendedMission(missions, completed)
 }
 
 export interface ModuleGroup {

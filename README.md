@@ -85,7 +85,7 @@ src/
 │                      Leaderboard, Profile, auth, admin
 ├── store/             Zustand stores: app state (auth/per-user progress/admin),
 │                      cloud sync lifecycle + toasts
-└── tests/             Vitest suites (12 files, 139 tests)
+└── tests/             Vitest suites (12 files, 142 tests)
 
 supabase/
 └── migrations/        Postgres schema + RLS migration (0001_init.sql)

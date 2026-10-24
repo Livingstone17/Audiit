@@ -142,9 +142,6 @@ import {
   Mail,
   Flame,
   Trophy,
-  FileSearch,
-  Download,
-  Zap,
   ChevronRight,
   Play,
   BarChart3,
@@ -218,6 +215,15 @@ const injectStyles = () => {
       0%   { top: 0%; opacity: 0.6; }
       100% { top: 100%; opacity: 0; }
     }
+    @keyframes spin-slow {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to   { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    @keyframes blob-drift {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33%      { transform: translate(30px, -20px) scale(1.05); }
+      66%      { transform: translate(-20px, 20px) scale(0.95); }
+    }
     .perspective-container {
       perspective: 1200px;
       perspective-origin: 50% 50%;
@@ -249,17 +255,28 @@ const injectStyles = () => {
       background-clip: text;
       animation: gradient-shift 4s ease-in-out infinite;
     }
+    /* ─── Glass: light frost for sub-cards ─── */
     .glass {
       background: rgba(255,255,255,0.03);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px) saturate(140%);
+      -webkit-backdrop-filter: blur(12px) saturate(140%);
       border: 1px solid rgba(255,255,255,0.08);
     }
+    /* ─── Glass: full frosted pane for main form ─── */
     .glass-strong {
-      background: rgba(255,255,255,0.06);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255,255,255,0.12);
+      background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.09) 0%,
+        rgba(255, 255, 255, 0.02) 100%
+      );
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 2px 8px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
     }
     .scan-line::after {
       content: '';
@@ -287,7 +304,6 @@ function FloatingSpreadsheet() {
 
   return (
     <div className="card-3d float-slow rounded-xl overflow-hidden glass-strong shadow-2xl shadow-emerald-500/5">
-      {/* title bar */}
       <div className="flex items-center gap-2 bg-white/[0.04] px-4 py-2.5 border-b border-white/[0.06]">
         <div className="flex gap-1.5">
           <span className="size-2.5 rounded-full bg-red-400/80" />
@@ -299,18 +315,15 @@ function FloatingSpreadsheet() {
         </span>
         <Table size={12} className="ml-auto text-emerald-400/60" />
       </div>
-      {/* formula bar */}
       <div className="flex items-center gap-2 px-4 py-1.5 bg-white/[0.02] border-b border-white/[0.04] text-[10px] text-slate-500">
         <span className="font-mono bg-white/[0.06] px-1.5 py-0.5 rounded text-emerald-400">C2</span>
         <span className="font-mono">=IF(B2&gt;$50000,"⚠ REVIEW","OK")</span>
       </div>
-      {/* header */}
       <div className="grid grid-cols-3 gap-px bg-white/[0.03] text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
         <div className="px-3 py-2 bg-white/[0.02]">Vendor ID</div>
         <div className="px-3 py-2 bg-white/[0.02]">Amount</div>
         <div className="px-3 py-2 bg-white/[0.02]">Status</div>
       </div>
-      {/* rows */}
       <div className="scan-line relative">
         {rows.map((r, i) => (
           <div
@@ -408,16 +421,13 @@ function XpCard3D() {
 function OrbitingElements() {
   return (
     <div className="absolute inset-0 pointer-events-none">
-      {/* center anchor */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-        {/* ring */}
         <div
           className="absolute -inset-[120px] rounded-full border border-dashed border-white/[0.06]"
           style={{ animation: 'pulse-ring 4s ease-in-out infinite' }}
         />
         <div className="absolute -inset-[90px] rounded-full border border-dashed border-white/[0.04]" />
 
-        {/* orbiting icons */}
         <div className="orbit-item absolute top-0 left-0">
           <div className="flex size-8 items-center justify-center rounded-lg glass text-emerald-400 shadow-lg shadow-emerald-500/10">
             <BarChart3 size={14} />
@@ -459,34 +469,6 @@ function useParallax() {
 }
 
 /* ══════════════════════════════════════════
-   Feature Card
-   ══════════════════════════════════════════ */
-function FeatureCard({
-  icon,
-  title,
-  desc,
-  delay,
-}: {
-  icon: React.ReactNode
-  title: string
-  desc: string
-  delay: string
-}) {
-  return (
-    <div
-      className="card-3d glass rounded-xl p-4 group cursor-default"
-      style={{ animationDelay: delay }}
-    >
-      <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20 transition-colors mb-3">
-        {icon}
-      </div>
-      <h3 className="text-sm font-semibold text-white mb-1">{title}</h3>
-      <p className="text-xs text-slate-400 leading-relaxed">{desc}</p>
-    </div>
-  )
-}
-
-/* ══════════════════════════════════════════
    Main Landing / Login Page
    ══════════════════════════════════════════ */
 export function LoginPage() {
@@ -513,6 +495,9 @@ export function LoginPage() {
       setError(res.error ?? 'Login failed.')
       return
     }
+
+    // Returning learners land on the dashboard, which points at their next
+    // mission; a first-time account is sent on to onboarding by RequireAuth.
     const from = (location.state as { from?: string } | null)?.from
     navigate(from && from !== '/login' ? from : '/', { replace: true })
   }
@@ -521,7 +506,6 @@ export function LoginPage() {
     <div className="min-h-dvh bg-[#06090d] text-white overflow-hidden">
       {/* ─── Background Layers ─── */}
       <div className="fixed inset-0 pointer-events-none">
-        {/* grid */}
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
@@ -530,7 +514,6 @@ export function LoginPage() {
             backgroundSize: '60px 60px',
           }}
         />
-        {/* gradient blobs */}
         <div
           className="absolute w-[800px] h-[800px] rounded-full opacity-30 blur-[120px]"
           style={{
@@ -566,7 +549,17 @@ export function LoginPage() {
       <div ref={parallaxRef} className="relative z-10 grid lg:grid-cols-2 min-h-dvh">
         {/* ═══════════ LEFT: Brand / 3D Showcase ═══════════ */}
         <div className="relative flex flex-col px-8 py-10 lg:px-12 lg:py-10">
-          {/* Hero */}
+          <div className="flex items-center justify-between anim-slide-up">
+            <Link to="/">
+              <Wordmark />
+            </Link>
+            {/* <div className="hidden md:flex items-center gap-6 text-sm text-slate-400">
+              <span className="hover:text-white transition-colors cursor-pointer">Missions</span>
+              <span className="hover:text-white transition-colors cursor-pointer">Tracks</span>
+              <span className="hover:text-white transition-colors cursor-pointer">Leaderboard</span>
+            </div> */}
+          </div>
+
           <div className="flex-1 flex flex-col justify-center py-12 lg:py-0">
             <div className="max-w-lg anim-slide-up-d1">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-xs font-medium text-emerald-300">
@@ -588,7 +581,6 @@ export function LoginPage() {
                 earn XP — the hands-on training lab built for aspiring auditors.
               </p>
 
-              {/* CTA buttons */}
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <Link to="/signup">
                   <Button size="lg" className="gap-2 shadow-lg shadow-emerald-500/20">
@@ -603,7 +595,6 @@ export function LoginPage() {
                 </button>
               </div>
 
-              {/* Social proof */}
               <div className="mt-8 flex items-center gap-4 text-xs text-slate-500">
                 <div className="flex -space-x-2">
                   {[
@@ -627,7 +618,6 @@ export function LoginPage() {
               </div>
             </div>
 
-            {/* 3D cards — desktop only */}
             <div className="hidden lg:block perspective-container mt-12 anim-slide-up-d2">
               <div className="grid grid-cols-2 gap-4 max-w-lg">
                 <div
@@ -647,7 +637,6 @@ export function LoginPage() {
                 >
                   <XpCard3D />
 
-                  {/* Mini mission card */}
                   <div className="card-3d float-fast glass rounded-xl p-3 shadow-xl">
                     <div className="flex items-center gap-2 mb-2">
                       <Target size={14} className="text-blue-400" />
@@ -682,84 +671,136 @@ export function LoginPage() {
           </p>
         </div>
 
-        {/* ═══════════ RIGHT: Login Form ═══════════ */}
-        <div className="flex items-center justify-center px-6 py-10 lg:px-12">
+        {/* ═══════════ RIGHT: Login Form w/ Glassmorphism ═══════════ */}
+        <div className="relative flex items-center justify-center px-6 py-10 lg:px-12">
+          {/* Colorful backdrop so the glass has something to blur through */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div
+              className="absolute top-1/2 left-1/2 w-[500px] h-[500px] rounded-full opacity-40 blur-[80px]"
+              style={{
+                background:
+                  'conic-gradient(from 0deg, rgba(16,185,129,0.5), rgba(59,130,246,0.4), rgba(168,85,247,0.4), rgba(16,185,129,0.5))',
+                animation: 'spin-slow 25s linear infinite',
+              }}
+            />
+            <div
+              className="absolute top-[15%] right-[8%] w-72 h-72 rounded-full opacity-40 blur-[70px]"
+              style={{
+                background:
+                  'radial-gradient(circle, rgba(16,185,129,0.6), transparent 70%)',
+                animation: 'blob-drift 12s ease-in-out infinite',
+              }}
+            />
+            <div
+              className="absolute bottom-[12%] left-[8%] w-80 h-80 rounded-full opacity-35 blur-[80px]"
+              style={{
+                background:
+                  'radial-gradient(circle, rgba(59,130,246,0.6), transparent 70%)',
+                animation: 'blob-drift 15s ease-in-out infinite reverse',
+              }}
+            />
+            <div
+              className="absolute top-[55%] right-[20%] w-56 h-56 rounded-full opacity-25 blur-[60px]"
+              style={{
+                background:
+                  'radial-gradient(circle, rgba(168,85,247,0.6), transparent 70%)',
+                animation: 'blob-drift 10s ease-in-out infinite',
+              }}
+            />
+          </div>
+
           <div
-            className="w-full max-w-sm anim-slide-up"
+            className="relative w-full max-w-sm anim-slide-up"
             style={{
               transform: `rotateY(${offset.x * -2}deg) rotateX(${offset.y * 2}deg)`,
               transition: 'transform 0.3s ease-out',
             }}
           >
-            <div className="glass-strong rounded-2xl p-8 shadow-2xl shadow-black/40">
-              {/* mobile wordmark */}
-              <div className="mb-6 text-center lg:hidden">
-                <Wordmark />
-                <p className="mt-2 text-xs text-slate-400">
-                  Level up your audit skills, one mission at a time.
+            <div className="relative glass-strong rounded-2xl p-8 overflow-hidden">
+              {/* Top edge gloss — mimics light catching the rim of glass */}
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+              {/* Left edge subtle gloss */}
+              <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-white/20 via-transparent to-transparent" />
+              {/* Inner radial glow */}
+              <div
+                className="absolute inset-0 pointer-events-none rounded-2xl opacity-60"
+                style={{
+                  background:
+                    'radial-gradient(circle at 50% 0%, rgba(16,185,129,0.1), transparent 60%)',
+                }}
+              />
+
+              <div className="relative">
+                <div className="mb-6 text-center lg:hidden">
+                  <Wordmark />
+                  <p className="mt-2 text-xs text-slate-400">
+                    Level up your audit skills, one mission at a time.
+                  </p>
+                </div>
+
+                <h2 className="text-xl font-bold tracking-tight text-white">
+                  Welcome back
+                </h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  Your next case file is waiting.
+                </p>
+
+                <form onSubmit={submit} className="mt-6 space-y-4">
+                  {error && <Alert variant="danger">{error}</Alert>}
+
+                  <Input
+                    label="Email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="you@company.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    icon={<Mail size={15} />}
+                  />
+
+                  <Input
+                    label="Password"
+                    type="password"
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    icon={<Lock size={15} />}
+                  />
+
+                  <Button
+                    type="submit"
+                    loading={loading}
+                    className="w-full shadow-lg shadow-emerald-500/20"
+                    size="lg"
+                  >
+                    Sign in <ArrowRight size={16} />
+                  </Button>
+                </form>
+
+                <div className="mt-6 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-white/[0.08]" />
+                  <span className="text-[11px] text-slate-500 uppercase tracking-wider">
+                    or
+                  </span>
+                  <div className="h-px flex-1 bg-white/[0.08]" />
+                </div>
+
+                <p className="mt-4 text-center text-sm text-slate-400">
+                  New to AuditLab?{' '}
+                  <Link
+                    to="/signup"
+                    className="font-medium text-emerald-400 hover:text-emerald-300 transition-colors hover:underline"
+                  >
+                    Create a free account
+                  </Link>
                 </p>
               </div>
-
-              <h2 className="text-xl font-bold tracking-tight text-white">
-                Welcome back
-              </h2>
-              <p className="mt-1 text-sm text-slate-400">
-                Your next case file is waiting.
-              </p>
-
-              <form onSubmit={submit} className="mt-6 space-y-4">
-                {error && <Alert variant="danger">{error}</Alert>}
-
-                <Input
-                  label="Email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="you@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  icon={<Mail size={15} />}
-                />
-
-                <Input
-                  label="Password"
-                  type="password"
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  icon={<Lock size={15} />}
-                />
-
-                <Button
-                  type="submit"
-                  loading={loading}
-                  className="w-full shadow-lg shadow-emerald-500/20"
-                  size="lg"
-                >
-                  Sign in <ArrowRight size={16} />
-                </Button>
-              </form>
-
-              <div className="mt-6 flex items-center gap-3">
-                <div className="h-px flex-1 bg-white/[0.08]" />
-                <span className="text-[11px] text-slate-500 uppercase tracking-wider">
-                  or
-                </span>
-                <div className="h-px flex-1 bg-white/[0.08]" />
-              </div>
-
-              <p className="mt-4 text-center text-sm text-slate-400">
-                New to AuditLab?{' '}
-                <Link
-                  to="/signup"
-                  className="font-medium text-emerald-400 hover:text-emerald-300 transition-colors hover:underline"
-                >
-                  Create a free account
-                </Link>
-              </p>
             </div>
 
-
+            <p className="mt-4 text-center text-[10px] text-slate-600">
+              Demo mode — accounts & progress stored locally in your browser
+            </p>
           </div>
         </div>
       </div>

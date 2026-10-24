@@ -461,6 +461,12 @@ export const useAppStore = create<AppState>()(
             const known = Object.keys(get().progressByUserId[user.id]?.records ?? {}).length > 0
             if (known) void get().syncNow()
             else await get().syncNow()
+            // Mission records are proof the learner already finished onboarding.
+            // Trust them over `profiles.persona`, which older accounts may not
+            // carry — otherwise a returning learner is sent back through it.
+            if (!get().onboarded && Object.keys(selectMyProgress(get()).records).length > 0) {
+              set({ onboarded: true })
+            }
             return { ok: true }
           }
 
@@ -595,6 +601,10 @@ export const useAppStore = create<AppState>()(
             syncStatus: 'idle',
           })
           await get().syncNow()
+          // Same fallback as `login`: work already done means onboarding is done.
+          if (!get().onboarded && Object.keys(selectMyProgress(get()).records).length > 0) {
+            set({ onboarded: true })
+          }
         } catch (error) {
           set({ syncStatus: 'error', syncError: describeError(error) })
         }
