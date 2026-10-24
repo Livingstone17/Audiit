@@ -288,7 +288,7 @@ export function DashboardPage() {
                         >
                           <span
                             className={cn(
-                              'flex size-9 items-center justify-center rounded-lg bg-gradient-to-br text-white',
+                              'flex size-9 items-center justify-center rounded-lg bg-linear-to-br text-white',
                               a.color,
                             )}
                           >
