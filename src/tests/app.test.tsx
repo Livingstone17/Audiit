@@ -125,12 +125,16 @@ afterEach(cleanup)
 describe('app smoke tests', () => {
   it('renders the dashboard for a signed-in learner', async () => {
     renderAt('/')
-    expect(await screen.findByText('Welcome back, Zoe')).toBeTruthy()
+    /* the mission catalogue code-splits, so wait for the next-mission card */
+    expect(await screen.findByText('MISSION 05')).toBeTruthy()
+    expect(screen.getByText('Welcome back, Zoe')).toBeTruthy()
     expect(screen.getByText('Your next mission is waiting.')).toBeTruthy()
     // next mission is 05 given m01–m04 are complete
-    expect(screen.getByText('MISSION 05')).toBeTruthy()
+    expect(screen.getByText('COUNTIF and COUNTIFS')).toBeTruthy()
     expect(screen.getByText('COUNTIF and COUNTIFS')).toBeTruthy()
     expect(screen.getByText('Level 2: Audit Analyst')).toBeTruthy()
+    /* no VITE_SUPABASE_* in tests, so the sync pill reports local-only mode */
+    expect(screen.getAllByText('Local only').length).toBeGreaterThan(0)
   })
 
   it('renders the mission catalogue', async () => {
@@ -154,8 +158,8 @@ describe('app smoke tests', () => {
 
   it('blocks locked missions with a clear explanation', async () => {
     renderAt('/missions/m11')
-    expect(await screen.findByText(/Mission 11 is locked/)).toBeTruthy()
-    expect(screen.getByText(/Complete "Building an Audit Exception Test"/)).toBeTruthy()
+    expect(await screen.findByText(/Mission 15 is locked/)).toBeTruthy()
+    expect(screen.getByText(/Complete "The Classic Lookup: INDEX \+ MATCH"/)).toBeTruthy()
   })
 
   it('renders the leaderboard with seeded peers', async () => {
@@ -165,10 +169,24 @@ describe('app smoke tests', () => {
     expect(screen.getAllByText(/Zoe Adeniyi/).length).toBeGreaterThan(0)
   })
 
-  it('renders login with demo accounts', async () => {
+  it('renders the login form without publishing demo credentials', async () => {
     renderAt('/login')
     expect(await screen.findByText('Welcome back')).toBeTruthy()
-    expect(screen.getByText('zoe@auditlab.app')).toBeTruthy()
-    expect(screen.getByText('admin@auditlab.app')).toBeTruthy()
+    expect(screen.getByLabelText('Email')).toBeTruthy()
+    expect(screen.getByLabelText('Password')).toBeTruthy()
+    /* the bundled demo logins fill the form from the README, not the page */
+    expect(screen.queryByText('Demo accounts')).toBeNull()
+    expect(screen.queryByText('zoe@auditlab.app')).toBeNull()
+    expect(screen.queryByText('admin@auditlab.app')).toBeNull()
+    expect(screen.queryByText('demo1234')).toBeNull()
+  })
+
+  it('redirects non-admins away from /admin', async () => {
+    renderAt('/admin')
+    /* learner lands back on the dashboard… */
+    expect(await screen.findByText('Welcome back, Zoe')).toBeTruthy()
+    /* …and none of the admin area is mounted */
+    expect(screen.queryByText('Mission library')).toBeNull()
+    expect(screen.queryByText('Administrator access required')).toBeNull()
   })
 })

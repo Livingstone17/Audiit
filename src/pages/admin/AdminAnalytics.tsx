@@ -9,8 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { useAppStore } from '../../store/app'
-import { allMissions } from '../../store/app'
+import { useAppStore, mergeProgress, useMissions } from '../../store/app'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { Progress } from '../../components/ui/progress'
 import { EmptyState } from '../../components/ui/overlays'
@@ -19,10 +18,12 @@ import { Badge } from '../../components/ui/badge'
 import { BarChart3 } from 'lucide-react'
 
 export function AdminAnalytics() {
-  const events = useAppStore((s) => s.events)
-  const records = useAppStore((s) => s.records)
-  const submissions = useAppStore((s) => s.submissions)
-  const missions = allMissions()
+  const progressByUserId = useAppStore((s) => s.progressByUserId)
+  const { records, submissions, events } = useMemo(
+    () => mergeProgress(Object.values(progressByUserId)),
+    [progressByUserId],
+  )
+  const missions = useMissions()
 
   const missionStats = useMemo(() => {
     return missions.map((m) => {

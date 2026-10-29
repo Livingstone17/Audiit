@@ -754,7 +754,7 @@ export const FOUNDATION_MISSIONS: Mission[] = [
         },
         unit: 'rows',
         explanation:
-          'These invoices were billed by vendors that should not be transacting. After Mission 19 you will investigate exactly this pattern across the full population.',
+          'These invoices were billed by vendors that should not be transacting. After Mission 30 you will investigate exactly this pattern across the full population.',
         incorrectFeedback:
           'Cross-check every Vendor ID in the extract against the Vendor Status column of the master — do not assume all vendors are Active.',
       },

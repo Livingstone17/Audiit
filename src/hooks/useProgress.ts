@@ -1,17 +1,13 @@
-import { useAppStore, accuracyOf, allMissions, completedSet } from '../store/app'
+import { useAppStore, accuracyOf, completedSet, selectMyProgress, useMissions } from '../store/app'
 import { getLevelInfo } from '../lib/levels'
 import { SKILLS } from '../data/achievements'
 import { countHintsUsed, levelMissions, recommendedMission } from '../data/missions'
 import type { Mission } from '../lib/types'
 
 export function useProgress() {
-  const xp = useAppStore((s) => s.xp)
-  const records = useAppStore((s) => s.records)
-  const submissions = useAppStore((s) => s.submissions)
-  const achievements = useAppStore((s) => s.achievements)
-  const events = useAppStore((s) => s.events)
+  const { xp, records, submissions, achievements, events } = useAppStore(selectMyProgress)
 
-  const missions = allMissions()
+  const missions = useMissions()
   const completed = completedSet({ records })
   const levelInfo = getLevelInfo(xp)
   const started = new Set(
@@ -28,10 +24,10 @@ export function useProgress() {
   const missionsCompleted = completed.size
   const totalMissions = missions.length
 
-  const next = recommendedMission(completed)
+  const next = recommendedMission(missions, completed)
 
   const skills = SKILLS.map((skill) => {
-    const skillMissions = levelMissions(skill.levelId)
+    const skillMissions = levelMissions(missions, skill.levelId)
     const done = skillMissions.filter((m) => completed.has(m.id)).length
     return {
       ...skill,

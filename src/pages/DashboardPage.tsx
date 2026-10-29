@@ -7,7 +7,7 @@ import {
   Target,
   Zap,
 } from 'lucide-react'
-import { useAppStore } from '../store/app'
+import { useAppStore, selectMyProgress } from '../store/app'
 import { useProgress } from '../hooks/useProgress'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card'
 import { Badge, DifficultyBadge } from '../components/ui/badge'
@@ -20,7 +20,7 @@ import { cn, timeAgo } from '../lib/utils'
 
 export function DashboardPage() {
   const user = useAppStore((s) => s.user)
-  const events = useAppStore((s) => s.events)
+  const events = useAppStore((s) => selectMyProgress(s).events)
   const { xp, levelInfo, next, missions, completed, skills, achievements, records, missionsCompleted, totalMissions, accuracy } =
     useProgress()
 
@@ -103,7 +103,9 @@ export function DashboardPage() {
           {allDone && (
             <Card className="border-success/40 bg-success-soft/40 p-7 text-center">
               <Award className="mx-auto size-9 text-success" />
-              <h2 className="mt-3 text-xl font-semibold">All 24 missions completed</h2>
+              <h2 className="mt-3 text-xl font-semibold">
+                All {totalMissions} missions completed
+              </h2>
               <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
                 You have finished the Excel foundations, procurement audit, investigation
                 and the final case. Re-run any mission to sharpen your accuracy, or reset
@@ -131,7 +133,7 @@ export function DashboardPage() {
             <CardContent>
               <div className="grid gap-3 sm:grid-cols-3">
                 {AVAILABLE_LEVELS.map((level, i) => {
-                  const c = levelCompletion(level, completed)
+                  const c = levelCompletion(missions, level, completed)
                   const isNext = next?.levelId === level.id
                   const reached = missions.some(
                     (m) => m.levelId === level.id && (completed.has(m.id) || records[m.id]),
@@ -286,7 +288,7 @@ export function DashboardPage() {
                         >
                           <span
                             className={cn(
-                              'flex size-9 items-center justify-center rounded-lg bg-gradient-to-br text-white',
+                              'flex size-9 items-center justify-center rounded-lg bg-linear-to-br text-white',
                               a.color,
                             )}
                           >

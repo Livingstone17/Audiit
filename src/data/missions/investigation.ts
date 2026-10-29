@@ -18,7 +18,7 @@ const PO = 'po-register'
 export const INVESTIGATION_MISSIONS: Mission[] = [
   {
     id: 'm19',
-    number: 19,
+    number: 30,
     levelId: 'L3',
     module: 'Investigation',
     category: 'Investigation',
@@ -129,7 +129,7 @@ export const INVESTIGATION_MISSIONS: Mission[] = [
 
   {
     id: 'm20',
-    number: 20,
+    number: 31,
     levelId: 'L3',
     module: 'Investigation',
     category: 'Investigation',
@@ -255,7 +255,7 @@ export const INVESTIGATION_MISSIONS: Mission[] = [
 
   {
     id: 'm21',
-    number: 21,
+    number: 32,
     levelId: 'L3',
     module: 'Investigation',
     category: 'Investigation',
@@ -298,7 +298,7 @@ export const INVESTIGATION_MISSIONS: Mission[] = [
         id: 'm21-h1',
         concept: 'countif',
         title: 'Paid + no GRN',
-        body: 'Reuse the Mission 17 anti-join (PO not in GRN register), then filter those exceptions to Payment Status = "Paid".',
+        body: 'Reuse the Mission 21 anti-join (PO not in GRN register), then filter those exceptions to Payment Status = "Paid".',
         xpCost: 10,
       },
       {
@@ -333,7 +333,7 @@ export const INVESTIGATION_MISSIONS: Mission[] = [
         explanation:
           'Money out, no evidence of receipt. This is the three-way match failing at its most important leg — these become priority items for vouching to delivery evidence.',
         incorrectFeedback:
-          'Start from the Mission 17 list (invoices whose PO lacks a GRN), then keep only rows where Payment Status is Paid or Partial.',
+          'Start from the Mission 21 list (invoices whose PO lacks a GRN), then keep only rows where Payment Status is Paid or Partial.',
       },
       {
         id: 'm21-q2',
@@ -406,7 +406,7 @@ export const INVESTIGATION_MISSIONS: Mission[] = [
 
   {
     id: 'm22',
-    number: 22,
+    number: 33,
     levelId: 'L3',
     module: 'Judgement & Documentation',
     category: 'Investigation',
@@ -510,7 +510,7 @@ export const INVESTIGATION_MISSIONS: Mission[] = [
 
   {
     id: 'm23',
-    number: 23,
+    number: 34,
     levelId: 'L3',
     module: 'Judgement & Documentation',
     category: 'Investigation',

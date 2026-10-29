@@ -38,8 +38,8 @@ export const LEVELS: Level[] = [
     order: 5,
     name: 'Audit Analytics Specialist',
     tagline: 'Data is your audit tool.',
-    description: 'Advanced audit analytics. Unlocks after the MVP content pack.',
-    available: false,
+    description: 'Advanced audit analytics with Power Query, Power Pivot and automation.',
+    available: true,
   },
   {
     id: 'L6',

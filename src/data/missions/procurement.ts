@@ -24,7 +24,7 @@ const PAY = 'payment-register'
 export const PROCUREMENT_MISSIONS: Mission[] = [
   {
     id: 'm11',
-    number: 11,
+    number: 15,
     levelId: 'L2',
     module: 'Procure-to-Pay Testing',
     category: 'Procurement Audit',
@@ -127,7 +127,7 @@ export const PROCUREMENT_MISSIONS: Mission[] = [
 
   {
     id: 'm12',
-    number: 12,
+    number: 16,
     levelId: 'L2',
     module: 'Procure-to-Pay Testing',
     category: 'Procurement Audit',
@@ -229,7 +229,7 @@ export const PROCUREMENT_MISSIONS: Mission[] = [
 
   {
     id: 'm13',
-    number: 13,
+    number: 17,
     levelId: 'L2',
     module: 'Procure-to-Pay Testing',
     category: 'Procurement Audit',
@@ -336,7 +336,7 @@ export const PROCUREMENT_MISSIONS: Mission[] = [
 
   {
     id: 'm14',
-    number: 14,
+    number: 18,
     levelId: 'L2',
     module: 'Procure-to-Pay Testing',
     category: 'Procurement Audit',
@@ -458,7 +458,7 @@ export const PROCUREMENT_MISSIONS: Mission[] = [
 
   {
     id: 'm15',
-    number: 15,
+    number: 19,
     levelId: 'L2',
     module: 'Analytics & Reporting',
     category: 'Procurement Audit',
@@ -565,7 +565,7 @@ export const PROCUREMENT_MISSIONS: Mission[] = [
 
   {
     id: 'm16',
-    number: 16,
+    number: 20,
     levelId: 'L2',
     module: 'Analytics & Reporting',
     category: 'Procurement Audit',
@@ -677,7 +677,7 @@ export const PROCUREMENT_MISSIONS: Mission[] = [
 
   {
     id: 'm17',
-    number: 17,
+    number: 21,
     levelId: 'L2',
     module: 'Analytics & Reporting',
     category: 'Procurement Audit',
@@ -742,7 +742,7 @@ export const PROCUREMENT_MISSIONS: Mission[] = [
         explanation:
           'Each of these paid without independent evidence of receipt. Some will be paperwork lapses — the exposure is that nobody can currently prove the goods came.',
         incorrectFeedback:
-          'Match PO numbers (not invoice numbers) against the GRN file, and remember to exclude invoices with no PO at all — those are counted in Mission 12.',
+          'Match PO numbers (not invoice numbers) against the GRN file, and remember to exclude invoices with no PO at all — those are counted in Mission 16.',
       },
       {
         id: 'm17-q2',
@@ -779,7 +779,7 @@ export const PROCUREMENT_MISSIONS: Mission[] = [
 
   {
     id: 'm18',
-    number: 18,
+    number: 22,
     levelId: 'L2',
     module: 'Analytics & Reporting',
     category: 'Procurement Audit',

@@ -99,6 +99,53 @@ const BUILDERS: Record<string, () => BuiltDataset> = {
     )
   },
 
+  // ---- Raw AP extract (text cleanup & dates stored as text) ----
+  'ap-extract-raw': () => {
+    const w = getWorld('basic')
+    const rows = w.invoices.slice(0, 150).map((inv, i) => {
+      const n = i + 1
+      let invoiceNo = inv.invoiceNo
+      if (n % 6 === 0) invoiceNo = invoiceNo.replace(/-/g, ' - ')
+      if (n % 9 === 0) invoiceNo = ` ${invoiceNo} `
+      let vendorName = inv.vendorName
+      if (n % 11 === 0) vendorName = vendorName.replace(' ', '  ')
+      if (n % 5 === 0) vendorName = ` ${vendorName}`
+      if (n % 7 === 0) vendorName = `${vendorName}  `
+      if (n % 4 === 0) vendorName = vendorName.toLowerCase()
+      const [y, m, d] = inv.invoiceDate.split('-')
+      return {
+        invoiceNo,
+        invoiceDate: `${Number(d)}/${m}/${y}`,
+        vendorId: inv.vendorId,
+        vendorName,
+        department: n % 4 === 0 ? inv.department.toLowerCase() : inv.department,
+        total: inv.total,
+        approvalStatus: inv.approvalStatus,
+      }
+    })
+    return build(
+      'ap-extract-raw',
+      'ap_invoice_extract_raw.xlsx',
+      'AP Invoice Extract (Raw)',
+      'Raw September extract from the AP system — stray spaces, mixed case and dates stored as text.',
+      [
+        {
+          name: 'Extract',
+          columns: [
+            { key: 'invoiceNo', label: 'Invoice Number', width: 22 },
+            { key: 'invoiceDate', label: 'Invoice Date', width: 13 },
+            { key: 'vendorId', label: 'Vendor ID', width: 11 },
+            { key: 'vendorName', label: 'Vendor Name', width: 30 },
+            { key: 'department', label: 'Department', width: 17 },
+            { key: 'total', label: 'Total Amount', numeric: true, width: 15 },
+            { key: 'approvalStatus', label: 'Approval Status', width: 16 },
+          ],
+          rows,
+        },
+      ],
+    )
+  },
+
   // ---- Vendor master ----
   'vendor-master': () =>
     build(

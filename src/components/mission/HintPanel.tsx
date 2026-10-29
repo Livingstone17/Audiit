@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { BookOpen, HelpCircle, Lightbulb, PlayCircle, Unlock } from 'lucide-react'
 import type { Hint } from '../../lib/types'
-import { useAppStore } from '../../store/app'
+import { useAppStore, selectMyProgress } from '../../store/app'
 import { LEARN_LINKS, type LearnLink } from '../../data/learnLinks'
 import { Badge } from '../ui/badge'
 import { Dialog } from '../ui/overlays'
@@ -19,7 +19,7 @@ function youtubeId(url: string): string | null {
 
 export function HintPanel({ missionId, hints }: { missionId: string; hints: Hint[] }) {
   const revealHint = useAppStore((s) => s.useHint)
-  const revealed = useAppStore((s) => s.records[missionId]?.revealedHints) ?? NO_HINTS
+  const revealed = useAppStore((s) => selectMyProgress(s).records[missionId]?.revealedHints) ?? NO_HINTS
   const [video, setVideo] = useState<LearnLink | null>(null)
 
   if (hints.length === 0) return null

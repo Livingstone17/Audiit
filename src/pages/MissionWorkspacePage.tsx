@@ -12,7 +12,7 @@ import {
   Trophy,
   Zap,
 } from 'lucide-react'
-import { allMissions, useAppStore } from '../store/app'
+import { useMissions, useAppStore, selectMyProgress } from '../store/app'
 import { isMissionUnlocked, nextMission, countHintsUsed, countSolutionsShown } from '../data/missions'
 import { Badge, DifficultyBadge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -32,8 +32,8 @@ const NO_TASK_CHECKS: number[] = []
 
 export function MissionWorkspacePage() {
   const { id } = useParams<{ id: string }>()
-  const records = useAppStore((s) => s.records)
-  const missions = allMissions()
+  const records = useAppStore((s) => selectMyProgress(s).records)
+  const missions = useMissions()
   const mission = missions.find((m) => m.id === id)
 
   const completed = useMemo(
@@ -61,7 +61,7 @@ export function MissionWorkspacePage() {
     )
   }
 
-  if (!isMissionUnlocked(mission.id, completed)) {
+  if (!isMissionUnlocked(missions, mission.id, completed)) {
     const idx = missions.findIndex((m) => m.id === mission.id)
     const prev = missions[idx - 1]
     return (
@@ -96,13 +96,16 @@ function MissionBody({ mission, unlocked }: { mission: Mission; unlocked: Set<st
   const push = useToasts((s) => s.push)
 
   const user = useAppStore((s) => s.user)
-  const record = useAppStore((s) => s.records[mission.id])
-  const submissions = useAppStore((s) => s.submissions)
+  const missions = useMissions()
+  const record = useAppStore((s) => selectMyProgress(s).records[mission.id])
+  const submissions = useAppStore((s) => selectMyProgress(s).submissions)
   const startMission = useAppStore((s) => s.startMission)
   const completeMission = useAppStore((s) => s.completeMission)
-  const findings = useAppStore((s) => s.findings)
+  const findings = useAppStore((s) => selectMyProgress(s).findings)
 
-  const taskChecks = useAppStore((s) => s.taskChecks[mission.id] ?? NO_TASK_CHECKS)
+  const taskChecks = useAppStore(
+    (s) => selectMyProgress(s).taskChecks[mission.id] ?? NO_TASK_CHECKS,
+  )
   const toggleTaskCheck = useAppStore((s) => s.toggleTaskCheck)
   const [celebration, setCelebration] = useState<{
     earned: number
@@ -112,7 +115,7 @@ function MissionBody({ mission, unlocked }: { mission: Mission; unlocked: Set<st
 
   // mark the mission as started on first open
   useEffect(() => {
-    if (!record && isMissionUnlocked(mission.id, unlocked)) startMission(mission.id)
+    if (!record && isMissionUnlocked(missions, mission.id, unlocked)) startMission(mission.id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mission.id])
 
@@ -134,7 +137,7 @@ function MissionBody({ mission, unlocked }: { mission: Mission; unlocked: Set<st
   const solutionsXp = solutionsShown * SOLUTION_XP_COST
   const hintsXp = Math.max(0, hintXp - solutionsXp)
   const previewXp = Math.max(Math.round(mission.xp * 0.5), mission.xp - hintXp)
-  const next = nextMission(mission.id)
+  const next = nextMission(missions, mission.id)
 
   // Per-criterion progress: question/findings/written milestones come straight
   // from the store; the remaining "did the Excel work" items follow the task
@@ -194,22 +197,23 @@ function MissionBody({ mission, unlocked }: { mission: Mission; unlocked: Set<st
   useEffect(() => {
     if (!canComplete || isCompleted || completedRef.current) return
     completedRef.current = true
-    const res = completeMission(mission.id)
-    if (res) {
-      setCelebration({ earned: res.earned, achievements: res.newAchievements })
-      push({
-        variant: 'xp',
-        title: `+${res.earned} XP earned`,
-        description: `Mission ${String(mission.number).padStart(2, '0')} complete: ${mission.title}`,
-      })
-      res.newAchievements.forEach((a) =>
+    void completeMission(mission.id).then((res) => {
+      if (res) {
+        setCelebration({ earned: res.earned, achievements: res.newAchievements })
         push({
-          variant: 'achievement',
-          title: `Badge unlocked · ${a.name}`,
-          description: a.description,
-        }),
-      )
-    }
+          variant: 'xp',
+          title: `+${res.earned} XP earned`,
+          description: `Mission ${String(mission.number).padStart(2, '0')} complete: ${mission.title}`,
+        })
+        res.newAchievements.forEach((a) =>
+          push({
+            variant: 'achievement',
+            title: `Badge unlocked · ${a.name}`,
+            description: a.description,
+          }),
+        )
+      }
+    })
   }, [canComplete, isCompleted, mission, completeMission, push])
 
   const progressPercent = Math.round(
@@ -515,7 +519,7 @@ function MissionBody({ mission, unlocked }: { mission: Mission; unlocked: Set<st
                 <div className="mt-0.5 text-sm font-medium">{next.title}</div>
                 <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Zap size={11} /> {next.xp} XP · {next.estMinutes} min
-                  {isMissionUnlocked(next.id, unlocked) && !unlocked.has(next.id) && (
+                  {isMissionUnlocked(missions, next.id, unlocked) && !unlocked.has(next.id) && (
                     <span className="text-primary">· available now</span>
                   )}
                 </div>

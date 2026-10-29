@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Crown, Medal, Trophy, Zap } from 'lucide-react'
 import { PEERS } from '../data/leaderboard'
-import { accuracyOf, useAppStore } from '../store/app'
+import { accuracyOf, useAppStore, selectMyProgress } from '../store/app'
 import { useProgress } from '../hooks/useProgress'
 import { Avatar } from '../components/brand'
 import { Badge } from '../components/ui/badge'
@@ -29,7 +29,7 @@ interface Row {
 
 export function LeaderboardPage() {
   const user = useAppStore((s) => s.user)
-  const submissions = useAppStore((s) => s.submissions)
+  const submissions = useAppStore((s) => selectMyProgress(s).submissions)
   const { xp, missionsCompleted, records } = useProgress()
   const [metric, setMetric] = useState<Metric>('xp')
 

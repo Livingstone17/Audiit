@@ -21,8 +21,8 @@ export function LearnPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">Learn</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          One course, four modules, 24 missions — built around a real manufacturing
-          procurement audit at {COMPANY.name}.
+          One course, {AVAILABLE_LEVELS.length} levels, {total} missions — built around
+          a real manufacturing procurement audit at {COMPANY.name}.
         </p>
       </div>
 
@@ -67,7 +67,7 @@ export function LearnPage() {
       {/* Levels / modules */}
       <div className="space-y-8">
         {AVAILABLE_LEVELS.map((level, li) => {
-          const groups = moduleGroups(level.id)
+          const groups = moduleGroups(missions, level.id)
           const levelDone = missions.filter(
             (m) => m.levelId === level.id && completed.has(m.id),
           ).length
@@ -88,7 +88,7 @@ export function LearnPage() {
               <div className="space-y-5">
                 {groups.map((group) => {
                   const firstLocked =
-                    missionStatus(group.missions[0]!.id, completed, started) === 'locked'
+                    missionStatus(missions, group.missions[0]!.id, completed, started) === 'locked'
                   return (
                     <Card
                       key={group.module}
@@ -105,7 +105,7 @@ export function LearnPage() {
 
                         <ul className="divide-y divide-border">
                           {group.missions.map((m) => {
-                            const status = missionStatus(m.id, completed, started)
+                            const status = missionStatus(missions, m.id, completed, started)
                             const locked = status === 'locked'
                             const isDone = status === 'completed'
                             const rowClass = cn(

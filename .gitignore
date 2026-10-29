@@ -6,11 +6,20 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+opencode.json
 
 node_modules
 dist
 dist-ssr
 *.local
+
+# Supabase CLI cache
+supabase/.temp
+
+# Local env — Supabase credentials never get committed
+.env
+.env.*
+!.env.example
 
 # Editor directories and files
 .vscode/*

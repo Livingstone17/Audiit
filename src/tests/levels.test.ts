@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { LEVELS, LEVEL_THRESHOLDS, getLevelInfo } from '../lib/levels'
 
 describe('levels & XP', () => {
-  it('defines 7 levels with only the first 4 available in the MVP', () => {
+  it('defines 7 levels with the first 5 available', () => {
     expect(LEVELS).toHaveLength(7)
-    expect(LEVELS.filter((l) => l.available)).toHaveLength(4)
+    expect(LEVELS.filter((l) => l.available)).toHaveLength(5)
     expect(LEVELS[0]!.name).toBe('Audit Trainee')
     expect(LEVELS[6]!.name).toBe('Audit Manager')
   })

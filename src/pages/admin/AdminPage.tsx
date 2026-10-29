@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import {
   BarChart3,
@@ -7,7 +8,8 @@ import {
   ShieldCheck,
   TicketCheck,
 } from 'lucide-react'
-import { useAppStore, allMissions } from '../../store/app'
+import { useAppStore, mergeProgress, useMissions } from '../../store/app'
+import { SEED_MISSION_COUNT } from '../../data/missions'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
@@ -28,34 +30,25 @@ const TABS = [
 
 export function AdminPage() {
   const user = useAppStore((s) => s.user)
-  const updateUser = useAppStore((s) => s.updateUser)
-  const records = useAppStore((s) => s.records)
-  const submissions = useAppStore((s) => s.submissions)
-  const events = useAppStore((s) => s.events)
+  const progressByUserId = useAppStore((s) => s.progressByUserId)
+  const { records, submissions, events } = useMemo(
+    () => mergeProgress(Object.values(progressByUserId)),
+    [progressByUserId],
+  )
   const location = useLocation()
   const navigate = useNavigate()
-  const missions = allMissions()
+  const missions = useMissions()
 
   if (user?.role !== 'admin') {
     return (
       <EmptyState
         icon={<ShieldCheck size={34} />}
         title="Administrator access required"
-        description="The admin area manages mission content and learner analytics. Enable admin access from your profile to explore it in this demo."
+        description="The admin area manages mission content and learner analytics. Sign in with an administrator account (admin@auditlab.app in this demo)."
         action={
-          <div className="flex gap-2">
-            <Button
-              onClick={() => {
-                if (user) updateUser({ role: 'admin' })
-                navigate('/admin')
-              }}
-            >
-              Enable admin access
-            </Button>
-            <Link to="/profile">
-              <Button variant="secondary">Go to profile</Button>
-            </Link>
-          </div>
+          <Link to="/">
+            <Button>Back to dashboard</Button>
+          </Link>
         }
       />
     )
@@ -219,7 +212,10 @@ function Overview({
             <CardTitle>Content library health</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <HealthRow label="Missions published" value={`${missions} / 24 planned`} />
+            <HealthRow
+              label="Missions published"
+              value={`${missions} / ${SEED_MISSION_COUNT} planned`}
+            />
             <HealthRow label="Learners with progress" value={started > 0 ? 'Yes' : 'No activity yet'} />
             <HealthRow label="Challenge attempts" value={submissions} />
             <div className="rounded-lg border border-border bg-background/50 p-3 text-xs text-muted-foreground">
