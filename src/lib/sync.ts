@@ -1,7 +1,7 @@
 /**
  * Cloud sync — mirrors the local-first progress slices to Supabase Postgres.
  *
- * AuditLab stays authoritative in localStorage: every mutation is written
+ * FinQuest stays authoritative in localStorage: every mutation is written
  * locally first, so the app keeps working offline, with no credentials, and in
  * tests. This module is the *only* place that talks to Postgres. It pushes the
  * signed-in user's slice up and pulls the cloud copy down, then merges the two
@@ -284,6 +284,68 @@ export async function fetchProfile(
     .maybeSingle()
   if (error) throw new Error(error.message)
   return (data as ProfileRow | null) ?? null
+}
+
+interface RowLike {
+  id: string
+  name: string
+  persona: string | null
+  avatar_hue: number | null
+  role: string | null
+  xp: number | null
+  missions_completed: number | null
+  accuracy: number | null
+  last_active_at: string | null
+  xp_last_7d: number | null
+  missions_last_7d: number | null
+  streak: number | null
+}
+
+/** One row of the global `leaderboard` view (see supabase/migrations/0002). */
+export interface LeaderboardEntry {
+  id: string
+  name: string
+  persona?: string
+  avatarHue?: number
+  xp: number
+  missionsCompleted: number
+  accuracy: number
+  lastActiveAt: string | null
+  /** momentum — XP and missions earned in the trailing 7 days */
+  xp7d: number
+  missions7d: number
+  /** consecutive active days ending today (or yesterday), capped at 30 */
+  streak: number
+}
+
+/**
+ * Read the live standings from the `leaderboard` view. The view deliberately
+ * runs with its owner's privileges so a learner sees every account's aggregate
+ * stats — never their submissions or findings — and administrators are filtered
+ * out client-side.
+ */
+export async function fetchLeaderboard(client: SupabaseClient): Promise<LeaderboardEntry[]> {
+  const { data, error } = await client
+    .from('leaderboard')
+    .select(
+      'id, name, persona, avatar_hue, role, xp, missions_completed, accuracy, last_active_at, xp_last_7d, missions_last_7d, streak',
+    )
+  if (error) throw new Error(error.message)
+  return ((data ?? []) as unknown as RowLike[])
+    .filter((row) => row.role !== 'admin')
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      persona: row.persona ?? undefined,
+      avatarHue: row.avatar_hue ?? undefined,
+      xp: row.xp ?? 0,
+      missionsCompleted: row.missions_completed ?? 0,
+      accuracy: row.accuracy ?? 0,
+      lastActiveAt: row.last_active_at ?? null,
+      xp7d: row.xp_last_7d ?? 0,
+      missions7d: row.missions_last_7d ?? 0,
+      streak: row.streak ?? 0,
+    }))
 }
 
 /**

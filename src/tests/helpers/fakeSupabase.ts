@@ -1,7 +1,7 @@
 /**
  * Minimal in-memory stand-in for `@supabase/supabase-js`.
  *
- * It covers exactly the surface AuditLab uses: the auth methods called from the
+ * It covers exactly the surface FinQuest uses: the auth methods called from the
  * store, and the query chains built in `lib/sync.ts` (`select().eq().order()`,
  * `select().eq().maybeSingle()`, `upsert(rows, opts)` and `delete().eq()`).
  * Tests mock `../lib/supabase` with the singleton exported here so they can

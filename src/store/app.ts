@@ -21,6 +21,7 @@ import { validateAnswer } from '../lib/validation'
 import { supabase } from '../lib/supabase'
 import {
   deleteCloudProgress,
+  fetchLeaderboard,
   fetchProfile,
   mergeMissionRecord,
   mergeUserProgress,
@@ -29,8 +30,31 @@ import {
   pushSnapshot,
   SUBMISSIONS_CAP,
   userFromCloud,
+  type LeaderboardEntry,
   type AuthUserLike,
 } from '../lib/sync'
+
+/* ------------------------------------------------------------------ */
+/* Local persistence keys                                              */
+/* ------------------------------------------------------------------ */
+
+/** The zustand persist key since the FinQuest rebrand. */
+const STORE_KEY = 'finquest-store-v1'
+/** The pre-rebrand key (`auditlab-store-v1`) — copied over once, then removed. */
+const LEGACY_STORE_KEY = 'auditlab-store-v1'
+
+/* One-time migration: browsers that still hold the old key keep their accounts,
+ * progress, theme and onboarding flag. Runs before the store is created so the
+ * first hydration reads the migrated payload. Idempotent — a second run finds
+ * the new key already populated and does nothing, whether or not the legacy
+ * key is still around. */
+if (typeof window !== 'undefined' && window.localStorage) {
+  const legacy = window.localStorage.getItem(LEGACY_STORE_KEY)
+  if (legacy !== null && window.localStorage.getItem(STORE_KEY) === null) {
+    window.localStorage.setItem(STORE_KEY, legacy)
+    window.localStorage.removeItem(LEGACY_STORE_KEY)
+  }
+}
 
 export interface Account {
   email: string
@@ -158,6 +182,8 @@ interface AppState {
   accounts: Account[]
   user: User | null
   onboarded: boolean
+  /** persisted per-user flag — once true for a user, their logins skip onboarding */
+  onboardedByUser: Record<string, boolean>
 
   /* cloud sync — `cloudUserId` is the Supabase auth id, null in local-only mode */
   cloudUserId: string | null
@@ -166,6 +192,14 @@ interface AppState {
   lastSyncedAt: string | null
   /** true while local changes have not reached Postgres yet */
   pendingSync: boolean
+
+  /* global leaderboard — null while unavailable (offline / failing / not configured);
+   * pages then fall back to the bundled seed peers */
+  leaderboard: LeaderboardEntry[] | null
+  leaderboardLoading: boolean
+  /** why the last live read failed — shown in the page footnote when the
+   *  board has fallen back to the bundled seed peers */
+  leaderboardError: string | null
 
   /* progression — one slice per user, keyed by User.id */
   progressByUserId: Record<string, UserProgress>
@@ -194,6 +228,8 @@ interface AppState {
   restoreSession: () => Promise<void>
   /** Push local state up, then merge the cloud copy back down. Safe to replay. */
   syncNow: () => Promise<void>
+  /** Read the live global standings from the leaderboard view. */
+  loadLeaderboard: () => Promise<void>
   completeOnboarding: (persona: string, excelLevel: 'Beginner' | 'Intermediate' | 'Advanced') => void
   updateUser: (patch: Partial<User>) => void
 
@@ -413,6 +449,24 @@ function describeError(error: unknown): string {
   return typeof error === 'string' ? error : 'Sync failed.'
 }
 
+/**
+ * Persist "this learner finished onboarding" for their user id, so a later
+ * login never re-routes them through it — even when the cloud profile read
+ * fails and `persona` comes back empty.
+ */
+function rememberOnboarded(userId: string): void {
+  useAppStore.setState((s) =>
+    s.onboardedByUser[userId]
+      ? { onboarded: true }
+      : { onboarded: true, onboardedByUser: { ...s.onboardedByUser, [userId]: true } },
+  )
+}
+
+/** Whether this device already saw the learner finish onboarding. */
+function rememberedOnboarded(state: AppState, userId: string | undefined): boolean {
+  return Boolean(userId && state.onboardedByUser[userId])
+}
+
 /* ------------------------------------------------------------------ */
 /* Auth actions                                                       */
 /* ------------------------------------------------------------------ */
@@ -423,6 +477,7 @@ export const useAppStore = create<AppState>()(
       accounts: DEMO_ACCOUNTS,
       user: null,
       onboarded: false,
+      onboardedByUser: {},
       progressByUserId: {},
       catalogue: null,
       theme: 'dark',
@@ -433,6 +488,9 @@ export const useAppStore = create<AppState>()(
       syncError: null,
       lastSyncedAt: null,
       pendingSync: false,
+      leaderboard: null,
+      leaderboardLoading: false,
+      leaderboardError: null,
 
       login: async (email, password) => {
         const clean = email.trim().toLowerCase()
@@ -445,12 +503,13 @@ export const useAppStore = create<AppState>()(
           })
 
           if (!error && data.user) {
+            const remembered = rememberedOnboarded(get(), data.user.id)
             const profile = await fetchProfile(client, data.user.id).catch(() => null)
             const user = userFromCloud(data.user as AuthUserLike, profile)
             set({
               user,
               cloudUserId: user.id,
-              onboarded: Boolean(user.persona),
+              onboarded: remembered || Boolean(user.persona),
               syncStatus: 'idle',
             })
             get().trackEvent('login')
@@ -465,7 +524,7 @@ export const useAppStore = create<AppState>()(
             // Trust them over `profiles.persona`, which older accounts may not
             // carry — otherwise a returning learner is sent back through it.
             if (!get().onboarded && Object.keys(selectMyProgress(get()).records).length > 0) {
-              set({ onboarded: true })
+              rememberOnboarded(user.id)
             }
             return { ok: true }
           }
@@ -477,7 +536,9 @@ export const useAppStore = create<AppState>()(
             set({
               user: local.account.user,
               cloudUserId: null,
-              onboarded: Boolean(local.account.user.persona),
+              onboarded:
+                rememberedOnboarded(get(), local.account.user.id) ||
+                Boolean(local.account.user.persona),
             })
             get().trackEvent('login')
             return { ok: true }
@@ -487,7 +548,12 @@ export const useAppStore = create<AppState>()(
 
         const local = matchLocalAccount(get().accounts, clean, password)
         if (!local.ok) return { ok: false, error: local.error }
-        set({ user: local.account.user, onboarded: Boolean(local.account.user.persona) })
+        set({
+          user: local.account.user,
+          onboarded:
+            rememberedOnboarded(get(), local.account.user.id) ||
+            Boolean(local.account.user.persona),
+        })
         get().trackEvent('login')
         return { ok: true }
       },
@@ -579,6 +645,32 @@ export const useAppStore = create<AppState>()(
         })
       },
 
+      loadLeaderboard: async () => {
+        const client = supabase
+        if (!client) {
+          set({
+            leaderboard: null,
+            leaderboardLoading: false,
+            leaderboardError: 'Supabase is not configured (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY)',
+          })
+          return
+        }
+        set({ leaderboardLoading: true })
+        try {
+          const entries = await fetchLeaderboard(client)
+          set({ leaderboard: entries, leaderboardLoading: false, leaderboardError: null })
+        } catch (error) {
+          /* standings are a nice-to-have: on any failure the page falls back
+           * to the bundled seed peers rather than erroring out — but keep the
+           * reason so the footnote/console can say *why* (missing view,
+           * stale migration, signed-out session, …) instead of silently
+           * showing demo data */
+          const message = error instanceof Error ? error.message : String(error)
+          console.warn('[leaderboard] live read failed —', message)
+          set({ leaderboard: null, leaderboardLoading: false, leaderboardError: message })
+        }
+      },
+
       restoreSession: async () => {
         const client = supabase
         if (!client) {
@@ -592,18 +684,19 @@ export const useAppStore = create<AppState>()(
             set({ syncStatus: 'idle' })
             return
           }
+          const remembered = rememberedOnboarded(get(), sessionUser.id)
           const profile = await fetchProfile(client, sessionUser.id)
           const user = userFromCloud(sessionUser as AuthUserLike, profile)
           set({
             user,
             cloudUserId: user.id,
-            onboarded: Boolean(user.persona),
+            onboarded: remembered || Boolean(user.persona),
             syncStatus: 'idle',
           })
           await get().syncNow()
           // Same fallback as `login`: work already done means onboarding is done.
           if (!get().onboarded && Object.keys(selectMyProgress(get()).records).length > 0) {
-            set({ onboarded: true })
+            rememberOnboarded(user.id)
           }
         } catch (error) {
           set({ syncStatus: 'error', syncError: describeError(error) })
@@ -637,6 +730,9 @@ export const useAppStore = create<AppState>()(
             pendingSync: false,
           })
           clearRetry()
+          // fresh push → refresh the cached standings so the leaderboard page
+          // shows the new XP as soon as it exists in the cloud
+          void get().loadLeaderboard()
         } catch (error) {
           const offline = typeof navigator !== 'undefined' && navigator.onLine === false
           set({
@@ -651,7 +747,8 @@ export const useAppStore = create<AppState>()(
       completeOnboarding: (persona, excelLevel) => {
         const user = get().user
         if (!user) return
-        set({ user: { ...user, persona, excelLevel }, onboarded: true })
+        set({ user: { ...user, persona, excelLevel } })
+        rememberOnboarded(user.id)
         get().trackEvent('onboarding_completed')
         scheduleSync()
       },
@@ -978,13 +1075,14 @@ export const useAppStore = create<AppState>()(
         }),
     }),
     {
-      name: 'auditlab-store-v1',
+      name: STORE_KEY,
       version: 3,
       storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({
         accounts: s.accounts,
         user: s.user,
         onboarded: s.onboarded,
+        onboardedByUser: s.onboardedByUser,
         progressByUserId: s.progressByUserId,
         theme: s.theme,
         adminMissions: s.adminMissions,

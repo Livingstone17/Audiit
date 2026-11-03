@@ -76,12 +76,16 @@ function resetLocal() {
     accounts: [...DEMO_ACCOUNTS],
     user: null,
     onboarded: false,
+    onboardedByUser: {},
     progressByUserId: {},
     cloudUserId: null,
     syncStatus: 'idle',
     syncError: null,
     lastSyncedAt: null,
     pendingSync: false,
+    leaderboard: null,
+    leaderboardLoading: false,
+    leaderboardError: null,
   })
 }
 
@@ -271,6 +275,122 @@ describe('cloud sync through the store', () => {
     /* the later push must not null out what the failed read could not see */
     expect(rows('profiles')[0]!.persona).toBe('Audit trainee')
     expect(rows('profiles')[0]!.excel_level).toBe('Intermediate')
+  })
+
+  it('pulls the global leaderboard and filters admins out', async () => {
+    fakeSupabase.db.tables['leaderboard'] = [
+      {
+        id: 'u-1',
+        name: 'Amara Live',
+        persona: 'Audit trainee',
+        avatar_hue: 280,
+        role: 'learner',
+        xp: 4820,
+        missions_completed: 17,
+        accuracy: 92,
+        last_active_at: '2026-10-30T09:00:00.000Z',
+        xp_last_7d: 410,
+        missions_last_7d: 2,
+        streak: 3,
+      },
+      {
+        id: 'u-2',
+        name: 'Admin Potemkin',
+        persona: null,
+        avatar_hue: null,
+        role: 'admin',
+        xp: 9999,
+        missions_completed: 40,
+        accuracy: 100,
+        last_active_at: null,
+        xp_last_7d: 0,
+        missions_last_7d: 0,
+        streak: 0,
+      },
+      {
+        id: 'u-3',
+        name: 'New Face',
+        persona: 'Student',
+        avatar_hue: 60,
+        role: 'learner',
+        xp: 10,
+        missions_completed: 0,
+        accuracy: 0,
+        last_active_at: null,
+        xp_last_7d: null,
+        missions_last_7d: null,
+        streak: null,
+      },
+    ]
+
+    await useAppStore.getState().loadLeaderboard()
+
+    const board = useAppStore.getState().leaderboard
+    expect(useAppStore.getState().leaderboardLoading).toBe(false)
+    expect(board?.map((e) => e.name)).toEqual(['Amara Live', 'New Face'])
+    expect(board?.[0]).toMatchObject({
+      id: 'u-1',
+      persona: 'Audit trainee',
+      avatarHue: 280,
+      xp: 4820,
+      missionsCompleted: 17,
+      accuracy: 92,
+      lastActiveAt: '2026-10-30T09:00:00.000Z',
+      xp7d: 410,
+      missions7d: 2,
+      streak: 3,
+    })
+    /* null momentum aggregates read as zero, never undefined */
+    expect(board?.[1]).toMatchObject({ xp7d: 0, missions7d: 0, streak: 0 })
+  })
+
+  it('falls back to seed data when the leaderboard read fails, keeping the reason', async () => {
+    fakeSupabase.db.failNext = { message: 'view does not exist' }
+
+    await useAppStore.getState().loadLeaderboard()
+
+    expect(useAppStore.getState().leaderboard).toBeNull()
+    expect(useAppStore.getState().leaderboardLoading).toBe(false)
+    /* the failure is not silent: the page footnote shows why */
+    expect(useAppStore.getState().leaderboardError).toBe('view does not exist')
+
+    /* a later successful read clears the stale reason */
+    fakeSupabase.db.tables['leaderboard'] = []
+    await useAppStore.getState().loadLeaderboard()
+    expect(useAppStore.getState().leaderboard).toEqual([])
+    expect(useAppStore.getState().leaderboardError).toBeNull()
+  })
+
+  it('refreshes the cached standings after every successful sync', async () => {
+    fakeSupabase.db.tables['leaderboard'] = [
+      {
+        id: user.id,
+        name: 'Cloud Learner',
+        persona: null,
+        avatar_hue: null,
+        role: 'learner',
+        xp: 200,
+        missions_completed: 1,
+        accuracy: 100,
+        last_active_at: null,
+        xp_last_7d: 200,
+        missions_last_7d: 1,
+        streak: 1,
+      },
+    ]
+
+    /* login awaits the initial sync for a device with no local progress →
+     * the push triggers a leaderboard refresh inside it. That refresh is
+     * fire-and-forget, so wait for the standings to land rather than only
+     * for the sync status to settle. */
+    const res = await useAppStore.getState().login('learner@example.com', 'pw123456')
+    expect(res.ok).toBe(true)
+    for (let i = 0; i < 200 && useAppStore.getState().leaderboard === null; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 2))
+    }
+
+    expect(useAppStore.getState().leaderboard?.length).toBe(1)
+    expect(useAppStore.getState().leaderboardError).toBeNull()
   })
 
   it('restores a second device from the cloud backup', async () => {

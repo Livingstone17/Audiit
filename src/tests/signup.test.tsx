@@ -49,6 +49,7 @@ beforeEach(() => {
     accounts: [...DEMO_ACCOUNTS],
     user: null,
     onboarded: false,
+    onboardedByUser: {},
     progressByUserId: {},
     cloudUserId: null,
     syncStatus: 'idle',

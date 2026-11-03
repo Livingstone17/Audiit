@@ -114,6 +114,7 @@ beforeEach(() => {
     accounts: [...DEMO_ACCOUNTS],
     user: null,
     onboarded: false,
+    onboardedByUser: {},
     progressByUserId: {},
     cloudUserId: null,
     syncStatus: 'idle',
@@ -193,6 +194,27 @@ describe('post-login routing', () => {
 
     expect(await screen.findByText('DASHBOARD')).toBeTruthy()
     expect(useAppStore.getState().onboarded).toBe(false)
+  })
+
+  it('remembers onboarding across logins even when the profile read fails', async () => {
+    const cloudUser = fakeSupabase.addUser('again@example.com', 'pw123456')
+    fakeSupabase.db.tables['profiles'] = [cloudProfile(cloudUser.id, 'Again Learner', null)]
+    fakeSupabase.db.tables['mission_records'] = [cloudRecord(cloudUser.id, 'm01', 'completed')]
+
+    /* first login: the records prove onboarding was already done */
+    renderLogin()
+    signIn('again@example.com', 'pw123456')
+    expect(await screen.findByText('DASHBOARD')).toBeTruthy()
+    expect(useAppStore.getState().onboarded).toBe(true)
+    expect(useAppStore.getState().onboardedByUser[cloudUser.id]).toBe(true)
+
+    /* second login on the same device, cloud unreachable this time */
+    fakeSupabase.db.failNext = { message: 'network down' }
+    renderLogin()
+    signIn('again@example.com', 'pw123456')
+
+    expect(await screen.findByText('DASHBOARD')).toBeTruthy()
+    expect(useAppStore.getState().onboarded).toBe(true)
   })
 })
 

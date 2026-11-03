@@ -1,4 +1,4 @@
--- AuditLab — auth-backed learner data.
+-- FinQuest — auth-backed learner data.
 --
 -- Run this once in the Supabase SQL editor (Dashboard → SQL Editor → New query),
 -- or apply it with the Supabase CLI (`supabase db push`). It is idempotent, so

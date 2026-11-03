@@ -11,7 +11,7 @@ export function isSupabaseConfigured(): boolean {
 /**
  * Browser Supabase client, or `null` when the project is not configured.
  *
- * AuditLab is local-first: when this is `null` every feature still runs off
+ * FinQuest is local-first: when this is `null` every feature still runs off
  * localStorage and the sync layer is simply disabled, so the app, the test
  * suite and offline use never depend on a backend being reachable.
  */

@@ -57,7 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const sidebar = (
     <div className="flex h-full flex-col">
       <div className="px-5 pt-5 pb-4">
-        <NavLink to="/" aria-label="AuditLab home">
+        <NavLink to="/" aria-label="FinQuest home">
           <Wordmark size="sm" />
         </NavLink>
       </div>

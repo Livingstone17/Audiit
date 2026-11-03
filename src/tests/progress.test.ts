@@ -81,7 +81,7 @@ describe('password hashing', () => {
     expect(JSON.stringify(account)).not.toContain('s3cret!pw')
     expect(verifyPassword('s3cret!pw', account.passwordHash)).toBe(true)
 
-    const raw = mem.get('auditlab-store-v1')!
+    const raw = mem.get('finquest-store-v1')!
     expect(raw).not.toContain('s3cret!pw')
     expect(raw).not.toContain('demo1234')
     expect(raw).not.toContain('admin1234')
@@ -206,13 +206,13 @@ describe('per-user progress', () => {
     expect(await start('m01')).toBe(true)
     await useAppStore.getState().logout()
 
-    const before = mem.get('auditlab-store-v1')
+    const before = mem.get('finquest-store-v1')
     expect(await start('m01')).toBe(false)
     expect(selectMyProgress(useAppStore.getState())).toBe(EMPTY_PROGRESS)
     useAppStore.getState().trackEvent('login')
     useAppStore.getState().toggleTaskCheck('m01', 0)
     useAppStore.getState().useHint('m01', 10)
-    expect(mem.get('auditlab-store-v1')).toBe(before)
+    expect(mem.get('finquest-store-v1')).toBe(before)
   })
 
   it('caps the per-user submissions log at SUBMISSIONS_CAP', async () => {
@@ -252,7 +252,7 @@ describe('per-user progress', () => {
     await start('m01')
     await useAppStore.getState().completeMission('m01')
 
-    const raw = JSON.parse(mem.get('auditlab-store-v1')!)
+    const raw = JSON.parse(mem.get('finquest-store-v1')!)
     expect(raw.version).toBe(3)
     expect(Object.keys(raw.state.progressByUserId)).toEqual(['u-zoe'])
     expect(raw.state.xp).toBeUndefined()

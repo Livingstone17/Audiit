@@ -46,14 +46,14 @@
 //           <Wordmark />
 //         </Link>
 //         <div className="relative max-w-md">
-//           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-emerald-300">
-//             <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+//           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-lime-300">
+//             <span className="size-1.5 rounded-full bg-lime-400 animate-pulse" />
 //             Manufacturing procurement audit track
 //           </div>
 //           <h1 className="text-3xl font-semibold leading-tight tracking-tight text-white">
 //             Don't just learn Excel.
 //             <br />
-//             <span className="text-emerald-400">Audit like a professional.</span>
+//             <span className="text-lime-400">Audit like a professional.</span>
 //           </h1>
 //           <p className="mt-4 text-[15px] leading-relaxed text-slate-400">
 //             Investigate realistic datasets from a fictional manufacturer, run exception
@@ -67,7 +67,7 @@
 //               'Instant feedback, progressive hints and audit finding templates',
 //             ].map((f) => (
 //               <li key={f} className="flex items-start gap-2.5">
-//                 <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400 text-[11px]">
+//                 <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-lime-500/15 text-lime-400 text-[11px]">
 //                   ✓
 //                 </span>
 //                 {f}
@@ -122,7 +122,7 @@
 //           </p>
 
 //           <p className="mt-6 text-center text-sm text-muted-foreground">
-//             New to AuditLab?{' '}
+//             New to FinQuest?{' '}
 //             <Link to="/signup" className="font-medium text-primary hover:underline">
 //               Create an account
 //             </Link>
@@ -204,8 +204,8 @@ const injectStyles = () => {
       50%      { background-position: 100% 50%; }
     }
     @keyframes cell-highlight {
-      0%, 100% { background: rgba(16,185,129,0.05); }
-      50%      { background: rgba(16,185,129,0.15); }
+      0%, 100% { background: rgba(163,230,53,0.05); }
+      50%      { background: rgba(163,230,53,0.15); }
     }
     @keyframes counter-pulse {
       0%, 100% { transform: scale(1); }
@@ -248,7 +248,7 @@ const injectStyles = () => {
     .anim-slide-up-d2 { animation: slide-up-delayed 1.2s cubic-bezier(0.22, 1, 0.36, 1) both; }
     .anim-slide-up-d3 { animation: slide-up-delayed 1.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
     .gradient-text {
-      background: linear-gradient(135deg, #34d399, #3b82f6, #34d399);
+      background: linear-gradient(135deg, #a3e635, #3b82f6, #a3e635);
       background-size: 200% 200%;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -283,7 +283,7 @@ const injectStyles = () => {
       position: absolute;
       left: 0; right: 0;
       height: 2px;
-      background: linear-gradient(90deg, transparent, rgba(16,185,129,0.4), transparent);
+      background: linear-gradient(90deg, transparent, rgba(163,230,53,0.5), transparent);
       animation: scan-line 3s ease-in-out infinite;
     }
   `
@@ -303,7 +303,7 @@ function FloatingSpreadsheet() {
   ]
 
   return (
-    <div className="card-3d float-slow rounded-xl overflow-hidden glass-strong shadow-2xl shadow-emerald-500/5">
+    <div className="card-3d float-slow rounded-xl overflow-hidden glass-strong shadow-2xl shadow-lime-500/5">
       <div className="flex items-center gap-2 bg-white/[0.04] px-4 py-2.5 border-b border-white/[0.06]">
         <div className="flex gap-1.5">
           <span className="size-2.5 rounded-full bg-red-400/80" />
@@ -313,10 +313,10 @@ function FloatingSpreadsheet() {
         <span className="ml-2 text-[11px] text-slate-400 font-medium">
           Procurement_Exceptions_Q4.xlsx
         </span>
-        <Table size={12} className="ml-auto text-emerald-400/60" />
+        <Table size={12} className="ml-auto text-lime-400/60" />
       </div>
       <div className="flex items-center gap-2 px-4 py-1.5 bg-white/[0.02] border-b border-white/[0.04] text-[10px] text-slate-500">
-        <span className="font-mono bg-white/[0.06] px-1.5 py-0.5 rounded text-emerald-400">C2</span>
+        <span className="font-mono bg-white/[0.06] px-1.5 py-0.5 rounded text-lime-400">C2</span>
         <span className="font-mono">=IF(B2&gt;$50000,"⚠ REVIEW","OK")</span>
       </div>
       <div className="grid grid-cols-3 gap-px bg-white/[0.03] text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
@@ -345,7 +345,7 @@ function FloatingSpreadsheet() {
                   REVIEW
                 </span>
               ) : (
-                <span className="text-emerald-400/70 text-[10px]">OK</span>
+                <span className="text-lime-400/70 text-[10px]">OK</span>
               )}
             </div>
           </div>
@@ -378,10 +378,10 @@ function XpCard3D() {
         <div className="flex items-center gap-2.5">
           <div className="text-right">
             <p className="text-[10px] uppercase tracking-wider text-slate-500">Total XP</p>
-            <p className="text-sm font-bold text-emerald-400 tabular-nums">2,450</p>
+            <p className="text-sm font-bold text-lime-400 tabular-nums">2,450</p>
           </div>
-          <span className="flex size-9 items-center justify-center rounded-lg bg-emerald-500/15">
-            <Trophy size={18} className="text-emerald-400" />
+          <span className="flex size-9 items-center justify-center rounded-lg bg-lime-500/15">
+            <Trophy size={18} className="text-lime-400" />
           </span>
         </div>
       </div>
@@ -390,11 +390,11 @@ function XpCard3D() {
           <span>
             Level 4 · <span className="text-slate-200 font-medium">Field Auditor</span>
           </span>
-          <span className="tabular-nums text-emerald-400">78%</span>
+          <span className="tabular-nums text-lime-400">78%</span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-white/10">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-300 transition-all relative"
+            className="h-full rounded-full bg-gradient-to-r from-lime-500 to-lime-300 transition-all relative"
             style={{ width: '78%' }}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
@@ -429,7 +429,7 @@ function OrbitingElements() {
         <div className="absolute -inset-[90px] rounded-full border border-dashed border-white/[0.04]" />
 
         <div className="orbit-item absolute top-0 left-0">
-          <div className="flex size-8 items-center justify-center rounded-lg glass text-emerald-400 shadow-lg shadow-emerald-500/10">
+          <div className="flex size-8 items-center justify-center rounded-lg glass text-lime-400 shadow-lg shadow-lime-500/10">
             <BarChart3 size={14} />
           </div>
         </div>
@@ -517,7 +517,7 @@ export function LoginPage() {
         <div
           className="absolute w-[800px] h-[800px] rounded-full opacity-30 blur-[120px]"
           style={{
-            background: 'radial-gradient(circle, rgba(16,185,129,0.15), transparent 70%)',
+            background: 'radial-gradient(circle, rgba(163,230,53,0.15), transparent 70%)',
             top: '-20%',
             left: '-10%',
             transform: `translate(${offset.x * 20}px, ${offset.y * 20}px)`,
@@ -562,28 +562,25 @@ export function LoginPage() {
 
           <div className="flex-1 flex flex-col justify-center py-12 lg:py-0">
             <div className="max-w-lg anim-slide-up-d1">
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-xs font-medium text-emerald-300">
-                <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Manufacturing Audit Track · {SEED_MISSION_COUNT} missions
-                <ChevronRight size={12} className="text-emerald-400/60" />
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-xs font-medium text-lime-300">
+                <span className="size-1.5 rounded-full bg-lime-400 animate-pulse" />
+                Real-world skills track · {SEED_MISSION_COUNT} missions
+                <ChevronRight size={12} className="text-lime-400/60" />
               </div>
 
               <h1 className="text-4xl sm:text-5xl font-bold leading-[1.1] tracking-tight">
-                Level up your
+                Build your
                 <br />
-                audit skills.
-                <br />
-                <span className="gradient-text">One mission at a time.</span>
+                <span className="gradient-text">professional edge.</span>
               </h1>
 
               <p className="mt-5 text-base leading-relaxed text-slate-400 max-w-md">
-                Investigate realistic datasets, run exception tests, document findings and
-                earn XP — the hands-on training lab built for aspiring auditors.
+                A practical environment for building real-world technical skills.
               </p>
 
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <Link to="/signup">
-                  <Button size="lg" className="gap-2 shadow-lg shadow-emerald-500/20">
+                  <Button size="lg" className="gap-2 shadow-lg shadow-lime-500/20">
                     Start for free <ArrowRight size={16} />
                   </Button>
                 </Link>
@@ -598,7 +595,7 @@ export function LoginPage() {
               <div className="mt-8 flex items-center gap-4 text-xs text-slate-500">
                 <div className="flex -space-x-2">
                   {[
-                    'bg-emerald-500',
+                    'bg-lime-500',
                     'bg-blue-500',
                     'bg-purple-500',
                     'bg-orange-500',
@@ -679,7 +676,7 @@ export function LoginPage() {
               className="absolute top-1/2 left-1/2 w-[500px] h-[500px] rounded-full opacity-40 blur-[80px]"
               style={{
                 background:
-                  'conic-gradient(from 0deg, rgba(16,185,129,0.5), rgba(59,130,246,0.4), rgba(168,85,247,0.4), rgba(16,185,129,0.5))',
+                  'conic-gradient(from 0deg, rgba(163,230,53,0.6), rgba(59,130,246,0.4), rgba(168,85,247,0.4), rgba(163,230,53,0.6))',
                 animation: 'spin-slow 25s linear infinite',
               }}
             />
@@ -687,7 +684,7 @@ export function LoginPage() {
               className="absolute top-[15%] right-[8%] w-72 h-72 rounded-full opacity-40 blur-[70px]"
               style={{
                 background:
-                  'radial-gradient(circle, rgba(16,185,129,0.6), transparent 70%)',
+                  'radial-gradient(circle, rgba(163,230,53,0.6), transparent 70%)',
                 animation: 'blob-drift 12s ease-in-out infinite',
               }}
             />
@@ -726,7 +723,7 @@ export function LoginPage() {
                 className="absolute inset-0 pointer-events-none rounded-2xl opacity-60"
                 style={{
                   background:
-                    'radial-gradient(circle at 50% 0%, rgba(16,185,129,0.1), transparent 60%)',
+                    'radial-gradient(circle at 50% 0%, rgba(163,230,53,0.12), transparent 60%)',
                 }}
               />
 
@@ -734,7 +731,7 @@ export function LoginPage() {
                 <div className="mb-6 text-center lg:hidden">
                   <Wordmark />
                   <p className="mt-2 text-xs text-slate-400">
-                    Level up your audit skills, one mission at a time.
+                    Build your professional edge.
                   </p>
                 </div>
 
@@ -771,7 +768,7 @@ export function LoginPage() {
                   <Button
                     type="submit"
                     loading={loading}
-                    className="w-full shadow-lg shadow-emerald-500/20"
+                    className="w-full shadow-lg shadow-lime-500/20"
                     size="lg"
                   >
                     Sign in <ArrowRight size={16} />
@@ -787,10 +784,10 @@ export function LoginPage() {
                 </div>
 
                 <p className="mt-4 text-center text-sm text-slate-400">
-                  New to AuditLab?{' '}
+                  New to FinQuest?{' '}
                   <Link
                     to="/signup"
-                    className="font-medium text-emerald-400 hover:text-emerald-300 transition-colors hover:underline"
+                    className="font-medium text-lime-400 hover:text-lime-300 transition-colors hover:underline"
                   >
                     Create a free account
                   </Link>
@@ -798,9 +795,9 @@ export function LoginPage() {
               </div>
             </div>
 
-            <p className="mt-4 text-center text-[10px] text-slate-600">
+            {/* <p className="mt-4 text-center text-[10px] text-slate-600">
               Demo mode — accounts & progress stored locally in your browser
-            </p>
+            </p> */}
           </div>
         </div>
       </div>

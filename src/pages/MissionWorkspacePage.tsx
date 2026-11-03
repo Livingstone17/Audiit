@@ -526,7 +526,7 @@ function MissionBody({ mission, unlocked }: { mission: Mission; unlocked: Set<st
               </Link>
             ) : (
               <p className="mt-2 text-[13px] text-muted-foreground">
-                That was the last mission — you have completed the AuditLab curriculum.
+                That was the last mission — you have completed the FinQuest curriculum.
               </p>
             )}
           </div>
