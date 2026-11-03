@@ -43,7 +43,7 @@ const record = (completedAt: string, status: 'completed' | 'in-progress') => ({
 })
 
 localStorage.setItem(
-  'auditlab-store-v1',
+  'finquest-store-v1',
   JSON.stringify({
     version: 0,
     state: {
@@ -133,8 +133,10 @@ describe('app smoke tests', () => {
     expect(screen.getByText('COUNTIF and COUNTIFS')).toBeTruthy()
     expect(screen.getByText('COUNTIF and COUNTIFS')).toBeTruthy()
     expect(screen.getByText('Level 2: Audit Analyst')).toBeTruthy()
-    /* no VITE_SUPABASE_* in tests, so the sync pill reports local-only mode */
-    expect(screen.getAllByText('Local only').length).toBeGreaterThan(0)
+    /* no VITE_SUPABASE_* in tests, so the cloud-status pill stays hidden */
+    expect(screen.queryByText('Local only')).toBeNull()
+    expect(screen.queryByText('Cloud ready')).toBeNull()
+    expect(screen.queryByText('Synced')).toBeNull()
   })
 
   it('renders the mission catalogue', async () => {

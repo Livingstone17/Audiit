@@ -1,8 +1,8 @@
-# AuditLab
+# FinQuest
 
-> **Don't just learn Excel. Learn how to use Excel to think, investigate and work like an internal auditor.**
+> **Build your professional edge. A practical environment for building real-world technical skills.**
 
-AuditLab is a production-quality SaaS learning platform that teaches Excel for internal
+FinQuest is a production-quality SaaS learning platform that teaches Excel for internal
 audit and manufacturing procurement auditing through practical, game-like missions.
 Learners download realistic datasets, work them in Microsoft Excel, submit answers back
 to the platform, receive immediate feedback, earn XP, unlock levels and eventually
@@ -85,16 +85,17 @@ src/
 │                      Leaderboard, Profile, auth, admin
 ├── store/             Zustand stores: app state (auth/per-user progress/admin),
 │                      cloud sync lifecycle + toasts
-└── tests/             Vitest suites (12 files, 142 tests)
+└── tests/             Vitest suites (14 files, 153 tests)
 
 supabase/
-└── migrations/        Postgres schema + RLS migration (0001_init.sql)
+└── migrations/        Postgres schema + RLS migrations (0001_init.sql, 0002_leaderboard.sql)
 ```
 
 Key decisions:
 
 - **Local-first with per-user progress**: all state persists to `localStorage`
-  (`auditlab-store-v1`), so the app runs with zero backend setup. Every account
+  (`finquest-store-v1`, migrated once from the pre-rebrand `auditlab-store-v1`
+  key), so the app runs with zero backend setup. Every account
   gets its own progression slice (`progressByUserId`, keyed by `User.id`) — two
   accounts on one browser never share XP, records, submissions, badges, finding
   drafts or analytics events. Legacy v0/v1 payloads are migrated into the
@@ -144,6 +145,14 @@ keyed on `auth.uid()` — owners read/write their own rows, administrators can r
 all of them — and adds a trigger that gives every new user a profile and a
 progress row.
 
+Then run
+[`supabase/migrations/0002_leaderboard.sql`](supabase/migrations/0002_leaderboard.sql)
+the same way. It creates the `leaderboard` view (name, persona, XP, completed
+missions, accuracy and last activity for every learner, plus momentum stats —
+7-day XP earned, missions completed and day streak; administrators excluded)
+that powers the live leaderboard page; without it the page falls back to the
+bundled seed peers.
+
 ### 3. Point the app at it
 
 ```bash
@@ -157,9 +166,11 @@ VITE_SUPABASE_URL=https://<project-ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<anon public key>
 ```
 
-The sidebar now shows a sync pill — *Local only* with no credentials, otherwise
-*Cloud ready → Syncing… → Synced*, or *Offline — will sync* when the network
-drops. The Profile page has the same status with a manual **Sync now**.
+Once the credentials are set (and the dev server restarted), the sidebar shows
+a sync pill: *Cloud ready → Syncing… → Synced*, or *Offline — will sync* when
+the network drops. Without credentials the pill stays hidden and progress is
+kept in this browser. The Profile page has the same status with a manual
+**Sync now**.
 
 ### 4. Make yourself an administrator
 

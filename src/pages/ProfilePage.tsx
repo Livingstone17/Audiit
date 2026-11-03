@@ -241,7 +241,7 @@ export function ProfilePage() {
             <SyncBadge />
             <p className="min-w-0 flex-1 text-sm text-muted-foreground">
               {!cloudUserId
-                ? 'Local-only mode — set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env to enable cloud sync.'
+                ? 'This account saves progress in this browser.'
                 : lastSyncedAt
                   ? `Last synced ${new Date(lastSyncedAt).toLocaleString()}${pendingSync ? ' · changes pending' : ''}`
                   : 'Waiting for the first sync…'}
@@ -291,7 +291,7 @@ export function ProfilePage() {
         open={editOpen}
         onClose={() => setEditOpen(false)}
         title="Edit profile"
-        description="Your display name appears across AuditLab."
+        description="Your display name appears across FinQuest."
       >
         <div className="space-y-4">
           <Input label="Display name" value={name} onChange={(e) => setName(e.target.value)} />

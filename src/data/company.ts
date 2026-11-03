@@ -1,4 +1,4 @@
-/** Apex Manufacturing Group — the fictional audit client used across AuditLab. */
+/** Apex Manufacturing Group — the fictional audit client used across FinQuest. */
 
 export const COMPANY = {
   name: 'Apex Manufacturing Group',

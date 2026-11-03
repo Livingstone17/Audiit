@@ -155,7 +155,7 @@ export function OnboardingPage() {
                 Back
               </Button>
               <Button size="lg" onClick={finish}>
-                Enter AuditLab <ArrowRight size={16} />
+                Enter FinQuest <ArrowRight size={16} />
               </Button>
             </div>
           </>
